@@ -8,7 +8,7 @@ android {
     defaultConfig {
         versionCode 5
         versionName "5"
-        applicationId "com.ai.face.Demo" //Demo App Name
+        applicationId "com.sdk.hiface.Demo" //Demo App Name
         minSdk 22
         targetSdk 35
         
