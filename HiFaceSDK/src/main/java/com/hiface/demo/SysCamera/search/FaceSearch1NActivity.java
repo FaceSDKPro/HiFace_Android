@@ -101,7 +101,7 @@ public class FaceSearch1NActivity extends AbsBaseActivity {
         /**摄像头管理源码开放在 {@link FaceCameraXFragment} **/
         CameraXBuilder cameraXBuilder = new CameraXBuilder.Builder()
                 .setCameraLensFacing(cameraLensFacing) //前后摄像头
-                .setLinearZoom(0.01f)      //焦距范围[0f,1.0f]，根据应用场景自行适当调整焦距（摄像头需支持变焦）
+                .setLinearZoom(0.11f)      //焦距范围[0f,1.0f]，根据应用场景自行适当调整焦距（摄像头需支持变焦）
                 .setRotation(degree)      //画面旋转方向
                 .setCameraSizeHigh(isCameraSizeHigh) //高分辨率远距离也可以工作，但是性能速度会下降
                 .create();

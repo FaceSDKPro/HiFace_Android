@@ -51,7 +51,7 @@ import java.util.Objects;
  * @author FaceSDK.Support@gmail.com
  */
 public class AddFaceFeatureActivity extends AbsBaseActivity {
-    public static String ADD_FACE_IMAGE_TYPE_KEY = "ADD_FACE_IMAGE_TYPE_KEY";
+    public static String ADD_FACE_IMAGE_TYPE_KEY = "ADD_FACE_IMAGE_TYPE_KEY"; //区分处理1:1 还是1:N 人脸搜索
     public static String ADD_FACE_PERFORMANCE_MODE = "ADD_FACE_PERFORMANCE_MODE";
     public static String NEED_CONFIRM_ADD_FACE = "NEED_CONFIRM_ADD_FACE"; //是否需要弹窗确认
     private boolean needConfirmAdd = true;   //是否需要弹窗给用户确认人脸信息,强烈建议需要确认
@@ -148,7 +148,7 @@ public class AddFaceFeatureActivity extends AbsBaseActivity {
 
         CameraXBuilder cameraXBuilder = new CameraXBuilder.Builder()
                 .setCameraLensFacing(cameraLensFacing) //前后摄像头
-                .setLinearZoom(0.1f)  //范围[0f,1.0f]，根据应用场景，自行适当调整焦距参数（摄像头需支持变焦）
+                .setLinearZoom(0.12f)  //范围[0f,1.0f]，根据应用场景，自行适当调整焦距参数（摄像头需支持变焦）
                 .setRotation(degree)  //画面旋转角度0，90，180，270
                 .setCameraSizeHigh(false) //高分辨率远距离也可以工作，但是性能速度会下降.部分定制设备不支持请工程师调试好
                 .create();

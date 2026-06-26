@@ -28,10 +28,9 @@ on_device Offline Face Detection 、Recognition 、Liveness Detection Anti Spoof
 
 **顺手帮忙点个🌟Star吧，谢谢**  
 
-##  V0.1.6
+##  V0.2.0
 - 提高人脸搜索精度（阈值0.75-0.85） 
-- GPU与CPU协同加速，提升性能
-- 其他问题修复
+- 人脸搜索识别处理tag,group字段以便分组 
 
 
 ## 如何使用

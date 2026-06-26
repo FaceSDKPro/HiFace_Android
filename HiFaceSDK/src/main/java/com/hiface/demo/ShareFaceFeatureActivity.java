@@ -80,7 +80,7 @@ public class ShareFaceFeatureActivity extends AbsBaseActivity {
 
         CameraXBuilder cameraXBuilder = new CameraXBuilder.Builder()
                 .setCameraLensFacing(cameraLensFacing)
-                .setLinearZoom(0.1f)
+                .setLinearZoom(0.12f)
                 .setRotation(degree)
                 .setCameraSizeHigh(false)
                 .create();
