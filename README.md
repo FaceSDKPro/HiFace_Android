@@ -60,3 +60,6 @@ on_device Offline Face Detection 、Recognition 、Liveness Detection Anti Spoof
 更多SDK API Demo见 https://github.com/FaceSDKPro/HiFace_Android
 
 
+### 后期我们将支持鸿蒙 iOS 等平台... 
+
+
