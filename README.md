@@ -28,7 +28,8 @@ on_device Offline Face Detection 、Recognition 、Liveness Detection Anti Spoof
 
 **顺手帮忙点个🌟Star吧，谢谢**  
 
-##  V0.2.0
+##  V0.3.0
+- 解决模型在某些设备兼容性问题
 - 提高人脸搜索精度（阈值0.75-0.85） 
 - 人脸搜索识别处理tag,group字段以便分组 
 
