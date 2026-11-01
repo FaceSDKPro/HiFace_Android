@@ -30,7 +30,7 @@ enum Control {
     ImageReference, GalleryReference, ImportReference, ExportFeature, ExportPreview, ImageEnroll,
     RefreshGallery, PreviousPage, NextPage, DeletePerson, UpdatePerson, ImportJson, ExportJson,
     ImportImages, PickSearchImage, SearchImageAgain, GoGallery, SearchGuide, SaveEnrollment, ReleaseMemory, People, Status, Metrics, Primary,
-    SearchResults, Back = kBackControl, Parameters = kParametersControl, HomePrevious = kHomePreviousControl, HomeNext = kHomeNextControl,
+    SearchResults, SearchCaption, CopySearch, Back = kBackControl, Parameters = kParametersControl, HomePrevious = kHomePreviousControl, HomeNext = kHomeNextControl,
     ParameterPane = 5000, NavBase = 6000, HomeBase = 7000
 };
 constexpr int kLabelOffset = 1000;
@@ -258,7 +258,7 @@ void layout(Ui& ui) {
     ShowWindow(child(window,Primary),home||camera_settings?SW_HIDE:SW_SHOW);
     ShowWindow(child(window,Cancel),home||camera_settings?SW_HIDE:SW_SHOW);
     for(int id=PersonId;id<=ReleaseMemory;++id){ShowWindow(child(window,id),SW_HIDE);ShowWindow(child(window,id+kLabelOffset),SW_HIDE);}
-    for(int id:{Device,RefreshDevices,Open,Close,Resolution,Rotation,Mirror,Apply,People,Enroll,GoGallery,Parameters,SearchImageAgain,HomePrevious,HomeNext,SearchResults})ShowWindow(child(window,id),SW_HIDE);
+    for(int id:{Device,RefreshDevices,Open,Close,Resolution,Rotation,Mirror,Apply,People,Enroll,GoGallery,Parameters,SearchImageAgain,HomePrevious,HomeNext,SearchResults,SearchCaption,CopySearch})ShowWindow(child(window,id),SW_HIDE);
     for(int i=0;i<kFeatureCount;++i)ShowWindow(child(window,HomeBase+i),SW_HIDE);
     move(Status,ui.main_left+8,height-67,width-ui.main_left-32,32);
     move(Metrics,ui.main_left+8,height-32,width-ui.main_left-32,24);
@@ -302,9 +302,14 @@ void layout(Ui& ui) {
     const int canvas_bottom=pane_visible||camera_settings?height-80:height-164;
     ui.canvas=rect(preview_left,ui.card_top,std::max(1,width-preview_left-20),std::max(1,canvas_bottom-ui.card_top));
     if(ui.page==Page::Search){
-        const int details_height=112;
-        move(SearchResults,preview_left+8,canvas_bottom-details_height+4,std::max(1,width-preview_left-36),details_height-8);
-        ShowWindow(child(window,SearchResults),SW_SHOW);
+        const int details_height=68;
+        const int caption_width=std::max(1,width-preview_left-116);
+        move(SearchCaption,preview_left+8,canvas_bottom-details_height+4,caption_width,28);
+        move(SearchResults,preview_left+8,canvas_bottom-details_height+34,std::max(1,width-preview_left-36),28);
+        move(CopySearch,width-96,canvas_bottom-details_height+4,68,28);
+        for (int id : {SearchCaption, SearchResults, CopySearch}) ShowWindow(child(window,id),SW_SHOW);
+        for (int id : {SearchCaption, SearchResults})
+            SendMessageW(child(window,id),WM_SETFONT,reinterpret_cast<WPARAM>(ui.theme.result),TRUE);
         ui.canvas.bottom-=px(details_height);
     }
     ui.view_height=std::max(1,height-194-ui.card_top);
@@ -376,6 +381,8 @@ std::wstring updatedTime(int64_t milliseconds) {
 void update(Ui& ui) {
     const auto state = ui.app.current(); const auto window = ui.app.window;
     setText(window, Status, ui.parameter_notice.empty() ? widen(state->update.message) : ui.parameter_notice);
+    ShowWindow(child(window,Metrics),ui.page==Page::Search?SW_HIDE:SW_SHOW);
+    ShowWindow(child(window,Status),ui.page==Page::Search?SW_HIDE:SW_SHOW);
     std::wostringstream metrics;
     metrics << L"人脸库 " << state->total << L" 条 | 1:1 基准: " << (state->has_reference ? L"已保存" : L"未设置");
     if (ui.page == Page::Search) metrics << L" | 当前搜索范围 " << state->search_population << L" 条";
@@ -449,20 +456,29 @@ void update(Ui& ui) {
     } else setText(window, Cancel, ui.page == Page::Search ? L"停止搜索" : L"取消流程 / 停止导入");
     if (ui.page == Page::Search && state->settings.page == Page::Search) {
         const auto& options = state->settings.search;
-        std::wostringstream detail;
-        detail << (options.multi_face ? L"M:N 多人" : L"1:N 单人") << L" | 活体 " << (options.liveness ? L"开启" : L"关闭")
-            << std::fixed << std::setprecision(2) << L" | 阈值 " << options.threshold << L" | 范围 " << state->search_population << L" 条"
-            << L" | 分组 " << (options.group.empty() ? L"全部" : widen(options.group)) << L" | 标签 " << (options.tag.empty() ? L"全部" : widen(options.tag)) << L"\r\n";
-        if (ui.dirty) detail << L"参数有未应用修改；上方显示当前已应用配置。\r\n";
-        if (state->paused || !state->camera_open || state->search_population == 0) {
-            detail << (state->paused ? L"已暂停，结果已清空；恢复后重新识别。" : !state->search_population
-                ? L"当前范围没有人员；请录入人员、导入人脸库或检查分组/标签。" : L"打开摄像头开始搜索。录入成功后需重新打开相机。");
-        } else if (state->update.faces.empty()) detail << widen(state->update.message);
-        else for (size_t i=0;i<state->update.faces.size();++i)
-            detail << L"人脸 " << i+1 << L"：" << widen(searchFaceText(state->update,state->update.faces[i])) << L"\r\n";
-        const auto value=detail.str();
-        if(value!=ui.last_search_results){ui.last_search_results=value;setText(window,SearchResults,value);}
+        std::wostringstream mode, detail;
+        mode << (options.multi_face ? L"M:N · 不检测活体" : options.liveness ? L"1:N · 活体已开启" : L"1:N · 活体未开启");
+        if (!state->error && state->update.has_liveness && std::isfinite(state->update.liveness_score))
+            mode << L" · " << std::fixed << std::setprecision(3) << state->update.liveness_score;
+        if (state->error || state->fatal) detail << widen(state->update.message);
+        else if (!ui.parameter_notice.empty()) detail << ui.parameter_notice;
+        else if (ui.dirty) detail << L"参数有未应用修改，请先应用参数。";
+        else if (state->paused || !state->camera_open || state->search_population == 0)
+            detail << (state->paused ? L"已暂停；恢复后重新识别。" : !state->search_population
+                ? L"当前范围没有人员；请录入或检查分组/标签。" : L"打开摄像头开始搜索。");
+        else if (state->update.faces.empty()) detail << widen(state->update.message);
+        else for (size_t i=0;i<state->update.faces.size();++i) {
+            if (i) detail << L" · ";
+            detail << widen(searchFaceText(state->update,state->update.faces[i]));
+        }
+        const auto full=mode.str()+L"\r\n"+detail.str();
+        if(full!=ui.last_search_results){
+            ui.last_search_results=full;
+            auto line=detail.str();std::replace(line.begin(),line.end(),L'\r',L' ');std::replace(line.begin(),line.end(),L'\n',L' ');
+            setText(window,SearchCaption,mode.str());setText(window,SearchResults,line);
+        }
     }
+
     bool changed = state->total != ui.rendered_gallery || state->offset != ui.rendered_offset || state->people.size() != ui.rendered_people.size();
     if (!changed) for (size_t i = 0; i < state->people.size(); ++i) {
         const auto& a = state->people[i]; const auto& b = ui.rendered_people[i];
@@ -664,7 +680,11 @@ void create(Ui& ui) {
     button(ui, ImportJson, L"批量导入 Android HF1 JSON"); button(ui, ExportJson, L"导出筛选结果 HF1 JSON"); button(ui, ImportImages, L"多选本地图片提取并导入"); button(ui, ReleaseMemory, L"释放数据库内存缓存");
     button(ui, PickSearchImage, L"选择图片并搜索"); button(ui, SearchImageAgain, L"重新搜索当前图片"); button(ui, GoGallery, L"打开人脸库");
     control(ui, L"STATIC", L"最多 10 张脸 · 阈值 0.80", SearchGuide);
-    control(ui, L"EDIT", L"", SearchResults, ES_READONLY | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP);
+    // Two fixed single-line controls; copying keeps the full, unabridged result.
+    // 固定两个单行控件，复制时保留未缩略的完整结果。
+    control(ui, L"EDIT", L"", SearchCaption, ES_READONLY | ES_AUTOHSCROLL | WS_TABSTOP);
+    control(ui, L"EDIT", L"", SearchResults, ES_READONLY | ES_AUTOHSCROLL | WS_TABSTOP);
+    control(ui, L"BUTTON", L"复制", CopySearch, WS_TABSTOP);
     const auto list = control(ui, WC_LISTVIEWW, L"", People, LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_TABSTOP);
     ListView_SetExtendedListViewStyle(list, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
     const wchar_t* columns[] = {L"人员 ID", L"分组", L"标签", L"更新时间"};
@@ -808,6 +828,20 @@ void action(Ui& ui, int id, int notification) {
             break;
         }
         case SearchImageAgain: ui.search_request_generation = ++ui.app.generation; submit(ui, Action::SearchPhotoAgain); break;
+        case CopySearch: {
+            if (!OpenClipboard(window)) break;
+            const auto bytes=(ui.last_search_results.size()+1)*sizeof(wchar_t);
+            HGLOBAL memory=GlobalAlloc(GMEM_MOVEABLE,bytes);
+            if (memory) {
+                auto data=static_cast<wchar_t*>(GlobalLock(memory));
+                if (data) {
+                    std::copy(ui.last_search_results.c_str(),ui.last_search_results.c_str()+ui.last_search_results.size()+1,data);
+                    GlobalUnlock(memory);
+                    if (!EmptyClipboard() || !SetClipboardData(CF_UNICODETEXT,memory)) GlobalFree(memory);
+                } else GlobalFree(memory);
+            }
+            CloseClipboard();break;
+        }
         case GoGallery: action(ui, NavBase + static_cast<int>(Page::Gallery), BN_CLICKED); break;
         case Compare: submit(ui, Action::Compare); break;
         case ImageReference: submit(ui, Action::SetImageReference); break;

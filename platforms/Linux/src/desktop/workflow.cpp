@@ -349,6 +349,9 @@ std::vector<Box> searchBoxes(const HiFaceSearchCameraResultV1& result, bool comp
         const bool matched = completed && result.end_reason == HIFACE_SEARCH_END_MATCH_FOUND &&
             face.threshold_passed && face.face_id[0];
         Box box{face.x, face.y, face.width, face.height, "Searching...", matched, {}};
+        if (matched) box.face_id.assign(face.face_id, strnlen(face.face_id, sizeof(face.face_id)));
+        if (completed && face.has_similarity && std::isfinite(face.similarity)) box.similarity = face.similarity;
+        if (completed && result.has_liveness_score && std::isfinite(result.liveness_score)) box.liveness = result.liveness_score;
         box.search_mark = matched ? SearchMark::Matched : rejected ? SearchMark::Rejected : SearchMark::Pending;
         if (result.progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) box.label = "Empty gallery";
         else if (result.progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) box.label = "Move closer";

@@ -1,23 +1,25 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_width="match_parent" android:layout_height="76dp"
     android:orientation="vertical" android:background="@drawable/bg_search_card"
     android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="8dp" android:paddingBottom="8dp">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="24dp" android:gravity="center_vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center_vertical">
         <View android:id="@+id/searchStateDot" android:layout_width="6dp" android:layout_height="6dp"
             android:background="@drawable/bg_search_dot"/>
-        <TextView android:id="@+id/searchStatus" android:layout_width="0dp"
-            android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="7dp"
-            android:textColor="@android:color/white" android:fontFamily="sans-serif-medium"
-            android:textSize="14sp" android:maxLines="1" android:ellipsize="end"
-            android:text="@string/search_ui_preparing"/>
+        <TextView android:id="@+id/searchOptions" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="7dp"
+            android:gravity="center_vertical" android:maxLines="1" android:ellipsize="end"
+            android:textColor="@android:color/white" android:fontFamily="sans-serif-medium" android:textSize="17sp"/>
     </LinearLayout>
-    <TextView android:id="@+id/searchGuidance" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:minLines="1" android:maxLines="2"
-        android:ellipsize="end" android:text="@string/search_ui_preparing_hint"
-        android:textColor="@color/text_on_dark_secondary" android:textSize="11sp"/>
-    <com.google.android.material.button.MaterialButton android:id="@+id/searchRetry"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="wrap_content" android:layout_height="48dp"
-        android:layout_gravity="end" android:text="@string/search_ui_retry_short"
-        android:textSize="12sp" android:textAllCaps="false" android:visibility="gone"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center_vertical">
+        <TextView android:id="@+id/searchGuidance" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:gravity="center_vertical"
+            android:maxLines="1" android:ellipsize="middle" android:text="@string/search_ui_preparing_hint"
+            android:textColor="@android:color/white" android:fontFamily="sans-serif-medium" android:textSize="18sp"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/searchRetry"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content" android:layout_height="30dp" android:minHeight="0dp"
+            android:paddingTop="0dp" android:paddingBottom="0dp" android:insetTop="0dp" android:insetBottom="0dp"
+            android:text="@string/search_ui_retry_short" android:textSize="12sp" android:textAllCaps="false"
+            android:visibility="gone"/>
+    </LinearLayout>
 </LinearLayout>

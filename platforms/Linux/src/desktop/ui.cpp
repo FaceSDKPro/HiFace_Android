@@ -57,8 +57,8 @@ void DemoUi::text(int x, int y, std::string value, uint32_t color, int max_width
     }
     scene_.text(x, y, value, color, font, measure_(value, font));
 }
-void DemoUi::wrap(int x, int y, const std::string& value, uint32_t color, int width, int max_lines, Font font) {
-    if (width <= 0 || max_lines <= 0) return;
+int DemoUi::wrap(int x, int y, const std::string& value, uint32_t color, int width, int max_lines, Font font) {
+    if (width <= 0 || max_lines <= 0) return 0;
     std::istringstream words(value); std::string word, line; std::vector<std::string> lines;
     while (words >> word) {
         if (!line.empty() && measure_(line + ' ' + word, font) > width) { lines.push_back(std::move(line)); line.clear(); }
@@ -79,8 +79,10 @@ void DemoUi::wrap(int x, int y, const std::string& value, uint32_t color, int wi
     }
     if (!line.empty()) lines.push_back(std::move(line));
     const bool truncated = int(lines.size()) > max_lines;
+    const int step = font == Font::Large || font == Font::Title ? 26 : 19;
     for (int i = 0; i < std::min(max_lines, int(lines.size())); ++i)
-        text(x, y + i * 19, lines[i] + (truncated && i == max_lines - 1 ? "..." : ""), color, width, font);
+        text(x, y + i * step, lines[i] + (truncated && i == max_lines - 1 ? "..." : ""), color, width, font);
+    return std::min(max_lines, int(lines.size())) * step;
 }
 void DemoUi::card(Rect r) {
     scene_.box({r.x, r.y + 2, r.w, r.h}, 0xe9ecf0, 12); scene_.box(r, border, 12); scene_.box({r.x + 1, r.y + 1, r.w - 2, r.h - 2}, surface, 11);
@@ -201,10 +203,15 @@ void DemoUi::home(const ViewState& s, Rect b) {
         wrap(r.x + 14, r.y + 55, feature.description, muted, w - 28, h > 100 ? 3 : 2, Font::Small);
     }
     scene_.clip = old_clip;
-    text(28, b.h - 78, "https://github.com/FaceSDKPro/", accent, b.w - 56, Font::Large);
-    if (home_max_scroll_) text(28, b.h - 54, "Scroll or use Page Up / Page Down for more features", muted, b.w - 190, Font::Small);
-    text(28, b.h - 28, notice_.empty() ? s.ready ? "SDK ready | Open a feature to begin" : s.status : notice_,
-         s.failed ? danger : muted, b.w - 190, Font::Small);
+    const std::string sdk_label = "SDK" HIFACE_DEMO_SDK_VERSION;
+    const int footer_y = b.h - 32, colon_x = 28 + measure_(sdk_label, Font::Body);
+    const int url_x = colon_x + 14 + measure_(" ", Font::Body);
+    text(28, footer_y, sdk_label, accent, b.w - 190, Font::Body);
+    // Draw U+FF1A in a full-width cell. Minimal Buildroot only has the C
+    // locale; Xutf8DrawString otherwise stops here and loses the entire URL.
+    scene_.dot(colon_x + 7, footer_y - 8, 2, accent);
+    scene_.dot(colon_x + 7, footer_y - 3, 2, accent);
+    text(url_x, footer_y, "https://github.com/FaceSDKPro", accent, b.w - 162 - url_x, Font::Body);
     button({b.w - 142, b.h - 54, 114, 34}, "Exit Demo", "quit", 0);
 }
 void DemoUi::startupFailure(const ViewState& state) {
@@ -234,6 +241,14 @@ void DemoUi::startupFailure(const ViewState& state) {
 }
 void DemoUi::pageHeader(const ViewState& state, const std::string& title, bool camera_view) {
     const int width = scene_.width;
+    if (camera_view && page_ == "camera") {
+        // Keep only configuration at the top; search navigation stays below the preview.
+        // 顶部仅保留配置入口，搜索页的导航按钮统一放在预览下方。
+        button({width - 276, 12, 146, 36}, "Settings", "feature-settings", 4, content_enabled_);
+        button({width - 122, 12, 106, 36}, camera_menu_ ? "Close menu" : "Menu", "camera-menu", 4,
+               state.ready && !state.importing);
+        return;
+    }
     button({16, 12, 86, 36}, "< Back", "back", camera_view ? 4 : 0,
            state.ready && (!state.busy || state.photo_search_busy || state.comparison_first_processing || state.comparison_second_processing || state.importing));
     const bool library_link = page_ == "image-search", library_menu = page_ == "gallery";
@@ -246,12 +261,7 @@ void DemoUi::pageHeader(const ViewState& state, const std::string& title, bool c
         if (page_ != "gallery") text(24, 80, demoPage(page_)->description, muted, width - 48, Font::Small);
         return;
     }
-    const int w = (width - 52) / 3;
-    if (page_ == "camera") {
-        button({16, 60, w, 34}, "Enroll", "page:enrollment", 4, content_enabled_);
-        button({26 + w, 60, w, 34}, "Face library", "page:gallery", 4, content_enabled_);
-        button({36 + w * 2, 60, w, 34}, "Settings", "feature-settings", 4, content_enabled_);
-    } else if (page_ == "verification") {
+    if (page_ == "verification") {
         button({16, 60, 204, 34}, "Choose Face ID", "page:references", 4, content_enabled_);
         button({230, 60, 146, 34}, "Settings", "feature-settings", 4, content_enabled_);
         text(392, 82, state.reference.empty() ? "No Face ID selected" : state.reference, 0xc2ceda, width - 408, Font::Small);
@@ -262,9 +272,16 @@ void DemoUi::pageHeader(const ViewState& state, const std::string& title, bool c
 }
 void DemoUi::camera(const ViewState& s, Rect b) {
     scene_.box(b, 0x101a29);
+    const bool search_page = page_ == "camera";
+    // Preserve the two caption rows; halve only the bottom padding (28 -> 14 px).
+    // 保留固定两行状态，仅将底部留白减半（28 -> 14 像素）。
+    const int bottom_padding = search_page ? 14 : 28;
+    const int result_height = 78 + 12 + 46 + bottom_padding;
+    Rect preview = b;
+    if (search_page) preview.h = std::max(80, b.h - result_height);
     static const std::vector<Box> no_boxes;
     if (!s.busy && s.image_first) picture(b, s.image_first.get(), nullptr, false, s.boxes);
-    else if (s.frame && s.connected) picture(b, nullptr, s.frame.get(), s.settings.mirror, !s.busy && (page_ == "camera" || page_ == "detection") ? s.liveBoxes() : no_boxes);
+    else if (s.frame && s.connected) picture(preview, nullptr, s.frame.get(), s.settings.mirror, !s.busy && (page_ == "camera" || page_ == "detection") ? s.liveBoxes() : no_boxes);
     else empty(b, "Connect a camera to begin", "Open Menu to choose a video device");
 
     const bool guided = page_ == "capture" || page_ == "enrollment" || page_ == "verification" || page_ == "liveness";
@@ -297,13 +314,13 @@ void DemoUi::camera(const ViewState& s, Rect b) {
     // Camera feature pages share the kiosk renderer: the camera consumes the complete
     // portrait viewport and diagnostics stay in compact overlays.
     // 各相机功能页共用全屏竖向渲染器，诊断信息放在紧凑叠加层中。
-    scene_.box({b.x, b.y, b.w, 160}, dark);
+    scene_.box({b.x, b.y, b.w, search_page ? 60 : 160}, dark);
     pageHeader(s, demoPage(page_)->title, true);
     const int metric_width = std::max(70, (b.w - 32) / 4);
     const std::string metrics[] = {number(s.fps) + " FPS", number(s.analysis_fps) + " FPS",
         number(s.milliseconds) + " ms", std::to_string(page_ == "detection" ? s.liveBoxes().size() : s.count)};
     const char* metric_names[] = {"Preview", "Recognition", "Last analysis", page_ == "detection" ? "Faces" : "Library"};
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; !search_page && i < 4; ++i) {
         const int x = b.x + 16 + i * metric_width;
         text(x, b.y + 124, metrics[i], i == 3 ? technology_green : 0xffffff, metric_width - 8, Font::Large);
         text(x, b.y + 147, metric_names[i], 0xc2ceda, metric_width - 8, Font::Body);
@@ -314,25 +331,46 @@ void DemoUi::camera(const ViewState& s, Rect b) {
         text(preview.x, preview.y - 8, "Aligned capture", 0xffffff, preview.w, Font::Small);
     }
 
-    const int controls_y = b.y + b.h - 74;
-    scene_.box({b.x, b.y + b.h - 164, b.w, 164}, dark);
-    text(b.x + 18, b.y + b.h - 137, "Running: " + std::string(modeName(s.mode)), technology_green, b.w - 36, Font::Large);
-    wrap(b.x + 18, b.y + b.h - 108, friendly(s.status), 0xffffff, b.w - 36, 2, Font::Body);
-    const int action_width = (b.w - 48) / 3;
-    const bool retry_camera = selected_task_ == "S" && (!s.connected || s.camera_stalled);
-    button({b.x + 12, controls_y, action_width, 46}, retry_camera ? "Reconnect" : selected_task_ == "S" && s.mode == 'P' ? "Resume" : selected_task_ == "S" && s.mode == 'S' ? "Pause" : "Try again",
-        !retry_camera && selected_task_ == "S" && (s.mode == 'S' || s.mode == 'P') ? "pause" : "start-task", 4,
-        content_enabled_ && (s.connected || selected_task_ == "S") && (s.mode == 'D' || selected_task_ == "S") && !s.pending_enrollment && !s.flow_result_pending && (selected_task_ != "V" || !s.reference.empty()), Font::Large);
-    button({b.x + 24 + action_width, controls_y, action_width, 46}, s.settings.mirror ? "Mirror on" : "Mirror off", "mirror",
-        s.settings.mirror ? 2 : 4, content_enabled_, Font::Large);
-    button({b.x + 36 + action_width * 2, controls_y, action_width, 46}, camera_menu_ ? "Close menu" : "Menu", "camera-menu", 4,
-        s.ready && !s.importing, Font::Large);
-    if (!s.lighting.empty()) text(b.x + 18, b.y + b.h - 8, s.lighting, 0xc2ceda, b.w - 36, Font::Small);
+    const int controls_y = b.y + b.h - bottom_padding - 46;
+    if (search_page) searchResults(s, {b.x, b.y + b.h - result_height, b.w, 78});
+    else {
+        scene_.box({b.x, b.y + b.h - 164, b.w, 164}, dark);
+        text(b.x + 18, b.y + b.h - 137, modeName(s.mode), technology_green, b.w - 36, Font::Large);
+        wrap(b.x + 18, b.y + b.h - 108, friendly(s.status), 0xffffff, b.w - 36, 2, Font::Body);
+    }
+    if (search_page) {
+        scene_.box({b.x, controls_y - 10, b.w, 46 + bottom_padding + 10}, dark);
+        const bool reconnect = !s.connected || s.camera_stalled;
+        const bool start_search = reconnect || s.mode != 'S';
+        const int count = start_search ? 5 : 4, gap = 6;
+        const int action_width = (b.w - 24 - gap * (count - 1)) / count;
+        const Font font = start_search ? Font::Body : Font::Large;
+        int x = b.x + 12;
+        auto action = [&](const std::string& label, const std::string& id, bool enabled, int style = 4) {
+            button({x, controls_y, action_width, 46}, label, id, style, enabled, font);
+            x += action_width + gap;
+        };
+        action("< Back", "back", s.ready && (!s.busy || s.importing));
+        action("Enroll", "page:enrollment", content_enabled_);
+        action("Face library", "page:gallery", content_enabled_);
+        action(s.settings.mirror ? "Mirror on" : "Mirror off", "mirror", content_enabled_, s.settings.mirror ? 2 : 4);
+        if (start_search) action(reconnect ? "Reconnect" : s.mode == 'P' ? "Resume" : "Start search", "start-task", content_enabled_);
+    } else {
+        const int action_width = (b.w - 48) / 3;
+        button({b.x + 12, controls_y, action_width, 46}, "Try again", "start-task", 4,
+            content_enabled_ && s.connected && s.mode == 'D' && !s.pending_enrollment && !s.flow_result_pending &&
+            (selected_task_ != "V" || !s.reference.empty()), Font::Large);
+        button({b.x + 24 + action_width, controls_y, action_width, 46}, s.settings.mirror ? "Mirror on" : "Mirror off", "mirror",
+            s.settings.mirror ? 2 : 4, content_enabled_, Font::Large);
+        button({b.x + 36 + action_width * 2, controls_y, action_width, 46}, camera_menu_ ? "Close menu" : "Menu", "camera-menu", 4,
+            s.ready && !s.importing, Font::Large);
+    }
+    if (!search_page && !s.lighting.empty()) text(b.x + 18, b.y + b.h - 8, s.lighting, 0xc2ceda, b.w - 36, Font::Small);
 
     }
     if (!camera_menu_) return;
     const int menu_h = (page_ == "detection" || page_ == "capture" || page_ == "enrollment") ? 292 : 248;
-    const int menu_y = b.y + b.h - 86 - menu_h;
+    const int menu_y = search_page ? b.y + 60 : b.y + b.h - 86 - menu_h;
     scene_.box({b.x + 12, menu_y, b.w - 24, menu_h}, 0x253342, 14);
     text(b.x + 32, menu_y + 32, "Camera options", 0xffffff, b.w - 64, Font::Title);
     const int x = b.x + 32, w = b.w - 64;
@@ -664,6 +702,39 @@ void DemoUi::selectImageFace(int index, const ViewState& state) {
     selected_image_face_ = std::clamp(index, 0, int(state.photo_search->faces.size()) - 1);
     image_face_offset_ = selected_image_face_ / image_face_rows_ * image_face_rows_;
     focused_.clear(); keyboard_focus_ = "image-face:" + std::to_string(selected_image_face_); select_all_ = false;
+}
+void DemoUi::searchResults(const ViewState& s, Rect panel) {
+    scene_.box(panel, dark);
+    std::string mode = s.settings.search_multi ? "M:N - No liveness check" :
+        s.settings.search_liveness ? "1:N - Liveness enabled" : "1:N - Liveness disabled";
+    std::string status = friendly(s.status);
+    const auto live_suffix = status.find(" | liveness ");
+    if (live_suffix != std::string::npos) status.resize(live_suffix);
+    std::string summary;
+    bool matched = false;
+    std::optional<float> liveness;
+    if (!s.failed && s.connected && !s.camera_stalled && s.mode == 'S') {
+        for (const auto& box : s.liveBoxes()) {
+            if (!box.similarity && !box.liveness && box.face_id.empty()) continue;
+            const std::string title = box.matched ? "Face ID: " + box.face_id : box.label;
+            if (!summary.empty()) summary += " | ";
+            summary += title;
+            if (box.similarity) summary += " - " + number(*box.similarity, 3);
+            matched = matched || box.matched;
+            if (box.liveness) {
+                if (!liveness) liveness = box.liveness;
+            }
+        }
+    }
+    if (liveness) mode += " - " + number(*liveness, 3);
+    if (summary.empty()) summary = status;
+    std::replace(summary.begin(), summary.end(), '\n', ' ');
+    std::replace(summary.begin(), summary.end(), '\r', ' ');
+    // Keep both captions on one line and use the width released by the removed copy action.
+    // 两行状态均不换行，复用移除复制按钮后释放的整行宽度。
+    text(panel.x + 18, panel.y + 30, mode, technology_green, panel.w - 36, Font::Large);
+    text(panel.x + 18, panel.y + 61, summary, s.failed ? 0xff7777 : matched ? technology_green : 0xffffff,
+         panel.w - 36, Font::Large);
 }
 void DemoUi::scroll(int steps, int x, int y, const ViewState& state) {
     if (soft_keyboard_open_) return;

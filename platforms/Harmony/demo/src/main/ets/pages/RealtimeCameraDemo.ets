@@ -114,6 +114,8 @@ export struct RealtimeCameraDemo {
   @State private searchedPeople: number = 0;
   @State private resultState: string = DemoL10n.text("启动相机后将持续检测人脸");
   @State private guideState: string = DemoL10n.text("实时检测");
+  @State private searchResultText: string = '';
+  @State private searchLivenessScore: number | undefined = undefined;
   @State private frontCamera: boolean = true;
   @State private currentMode: RealtimeMode = RealtimeMode.DETECTION;
   @State private capturedFace: image.PixelMap | undefined = undefined;
@@ -347,9 +349,6 @@ export struct RealtimeCameraDemo {
           this.drawOverlay();
         })
         if (this.isSearchMode()) {
-          Text(this.searchOptions()).fontSize(11).fontColor(DemoTheme.textOnDarkSecondary).maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis }).padding({ top: 6, bottom: 6, left: 16, right: 16 })
-            .width('100%').textAlign(TextAlign.Center)
           Column({ space: 10 }) {
             this.SearchStatus()
             Row({ space: 10 }) {
@@ -428,19 +427,25 @@ export struct RealtimeCameraDemo {
     Column({ space: 4 }) {
       Row({ space: 7 }) {
         Column().width(6).height(6).borderRadius(3).backgroundColor(this.statusColor())
-        Text(this.guideState).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#FFFFFF')
-          .layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-      }.height(24).width('100%')
-      Text(this.resultState).fontSize(11).fontColor(DemoTheme.textOnDarkSecondary).maxLines(2).width('100%')
-      if (this.searchRetryVisible) {
-        Row() {
-          Blank()
-          Button(DemoL10n.text("重试")).height(48).fontSize(12).backgroundColor(Color.Transparent)
+        Text(this.searchOptions() + (this.searchLivenessScore === undefined ? '' : ` · ${this.searchLivenessScore.toFixed(3)}`))
+          .fontSize(17).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
+      }.height(28).width('100%')
+      Row({ space: 6 }) {
+        Text(this.searchResultText.length > 0 ? this.searchResultText.replace(/\r?\n/g, ' · ') : `${this.guideState} · ${this.resultState}`)
+          .fontSize(18).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
+          .onClick(() => {
+            AlertDialog.show({ message: `${this.searchOptions()}\n${this.guideState}\n${this.resultState}\n${this.searchResultText}`,
+              confirm: { value: DemoL10n.text("返回"), action: (): void => {} } });
+          })
+        if (this.searchRetryVisible) {
+          Button(DemoL10n.text("重试")).height(28).fontSize(12).backgroundColor(Color.Transparent)
             .fontColor(DemoTheme.searchAccent).enabled(this.cameraReady && !this.flowBusy)
             .onClick(() => this.resumeSearch())
-        }.width('100%')
-      }
-    }.padding({ left: 12, right: 12, top: 8, bottom: 8 }).width('100%')
+        }
+      }.height(28).width('100%')
+    }.height(76).padding({ left: 12, right: 12, top: 8, bottom: 8 }).width('100%')
     .backgroundColor(DemoTheme.searchSurface).border({ width: 1, color: DemoTheme.searchBorder }).borderRadius(20)
   }
 
@@ -1676,6 +1681,10 @@ export struct RealtimeCameraDemo {
    * 合并同一 UI 帧内的多次绘制请求，避免每个检测/搜索回调都立即重绘 Canvas。
    */
   private drawOverlay(): void {
+    const resultText: string = this.isSearchMode() ? this.searchOverlayState.resultText() : '';
+    if (this.searchResultText !== resultText) this.searchResultText = resultText;
+    const score: number | undefined = this.searchOverlayState.livenessScore();
+    if (this.searchLivenessScore !== score) this.searchLivenessScore = score;
     if (this.overlayFramePending) return;
     this.overlayFramePending = true;
     try {

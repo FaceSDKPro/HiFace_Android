@@ -60,5 +60,5 @@ IR-only FLIR: create a CPU session with feature/landmarks disabled, call
 pixels, row stride, an IR-coordinate face box (x/y + width/height, at least 10x10)
 and a device-calibrated real threshold. `real_score >= real_threshold` passes;
 check status before reading the result. Dimensions may be odd, up to 4096 per side.
-See `../../../examples/image-search/infrared_liveness.c` for a complete consumer. This does not capture
+See `examples/infrared_liveness.c` for a complete consumer. This does not capture
 IR cameras, detect a face, or change the RGB liveness/search flows. Validate actual IR hardware and attacks separately.

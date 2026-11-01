@@ -22,21 +22,52 @@ import com.hiface.sdk.search.FaceSearchProgress;
  */
 final class FaceSearchStatusUi {
     private final Context context;
-    private final TextView status;
     private final TextView guidance;
     private final TextView people;
     private final TextView options;
     private final View retry;
     private final View stateDot;
+    private String modeText = "", stateTitle = "", hintText = "", fullResult = "";
+    private Float livenessScore;
+    private boolean errorVisible;
 
     FaceSearchStatusUi(View root) {
         context = root.getContext();
-        status = root.findViewById(R.id.searchStatus);
         guidance = root.findViewById(R.id.searchGuidance);
         people = root.findViewById(R.id.searchPeopleHint);
         options = root.findViewById(R.id.searchOptions);
         retry = root.findViewById(R.id.searchRetry);
         stateDot = root.findViewById(R.id.searchStateDot);
+        guidance.setOnClickListener(view -> showDetails());
+    }
+
+    void renderResult(String text, Float score) {
+        fullResult = text;
+        livenessScore = score;
+        renderCaption();
+    }
+
+    // Keep exactly two fixed rows; a dialog retains every ID character and all diagnostic text.
+    // 固定两行不增高，完整 ID 和诊断提示在点击后查看/复制。
+    private void renderCaption() {
+        String mode = modeText + (errorVisible || livenessScore == null ? "" : " · "
+                + String.format(java.util.Locale.ROOT, "%.3f", livenessScore));
+        String text = !errorVisible && !fullResult.isEmpty()
+                ? fullResult.substring(0, fullResult.indexOf('\n') < 0 ? fullResult.length() : fullResult.indexOf('\n'))
+                : stateTitle + " · " + hintText;
+        text = text.replace('\r', ' ').replace('\n', ' ');
+        if (!mode.contentEquals(options.getText())) options.setText(mode);
+        if (!text.contentEquals(guidance.getText())) guidance.setText(text);
+        guidance.setContentDescription(text);
+    }
+
+    private void showDetails() {
+        String text = modeText + "\n" + stateTitle + "\n" + hintText
+                + (fullResult.isEmpty() ? "" : "\n\n" + fullResult);
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(context)
+                .setMessage(text).setPositiveButton(android.R.string.ok, null).show();
+        TextView message = dialog.findViewById(android.R.id.message);
+        if (message != null) message.setTextIsSelectable(true);
     }
 
     /**
@@ -72,13 +103,14 @@ final class FaceSearchStatusUi {
      */
     void renderConfig(FaceSearchSessionConfig config) {
         if (config.getMode() == FaceSearchMode.MULTI_FACE) {
-            options.setText(R.string.search_ui_multi_options);
+            modeText = context.getString(R.string.search_ui_multi_options);
         } else {
-            options.setText(context.getString(R.string.search_ui_options,
+            modeText = context.getString(R.string.search_ui_options,
                     context.getString(R.string.search_ui_single_short),
                     context.getString(config.needsLiveness()
-                            ? R.string.search_ui_live_on : R.string.search_ui_live_off)));
+                            ? R.string.search_ui_live_on : R.string.search_ui_live_off));
         }
+        renderCaption();
     }
 
     /**
@@ -144,8 +176,10 @@ final class FaceSearchStatusUi {
      */
     private void showState(@StringRes int title, @StringRes int hint,
             @ColorRes int color, boolean canRetry) {
-        status.setText(title);
-        guidance.setText(hint);
+        stateTitle = context.getString(title);
+        hintText = context.getString(hint);
+        errorVisible = color == R.color.search_error_color;
+        renderCaption();
         retry.setVisibility(canRetry ? View.VISIBLE : View.GONE);
         stateDot.setBackgroundTintList(ColorStateList.valueOf(context.getColor(color)));
     }

@@ -2,9 +2,9 @@
 
 English | [中文](README.zh-CN.md)
 
-**0.8.2 Beta**
+**0.8.3 Beta**
 
-Android, iOS, Harmony, Windows, and Linux SDKs and Demos are updated to 0.8.2.
+Android, iOS, Harmony, Windows, and Linux SDKs and Demos are updated to 0.8.3.
 
 ### Offline face detection, capture, liveness, 1:1 verification and 1:N/M:N search.
 
@@ -32,7 +32,9 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - The SDK is in iterative public Beta testing. Please keep the SDK version up to date.
 - The current model does not support face recognition for people under 12 and must not be used in financial scenarios.
 - Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
-- Support for other platforms is being improved. If you encounter a problem, please open an issue.
+- Mobile apps require your own application signing.
+
+Support for other platforms is being improved. If you encounter a problem, please open an issue.
 
 [Releases](https://github.com/FaceSDKPro/HelloFace/releases) · [Android APK builds](https://github.com/FaceSDKPro/HelloFace/actions/workflows/android-demo.yml) · [Issues](https://github.com/FaceSDKPro/HelloFace/issues)
 

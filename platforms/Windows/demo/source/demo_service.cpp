@@ -42,8 +42,8 @@ bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& fa
 std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1& face) {
     std::ostringstream text;
     if (update.end_reason == HIFACE_SEARCH_END_SPOOF_DETECTED) text << u8"活体未通过 · 不确认身份";
-    else if (searchFaceAccepted(update, face)) text << u8"已识别 · " << face.face_id;
-    else if (face.has_similarity) text << u8"未确认身份 · " << (face.face_id[0] ? face.face_id : u8"无匹配人员");
+    else if (searchFaceAccepted(update, face)) text << "Face ID: " << face.face_id;
+    else if (face.has_similarity) text << u8"未匹配 · 请录入人脸或更换清晰正脸";
     else text << u8"等待有效人脸 / 搜索结果";
     if (face.has_similarity) text << std::fixed << std::setprecision(3) << u8" · 相似度 " << face.similarity;
     return text.str();

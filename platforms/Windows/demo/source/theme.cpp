@@ -36,13 +36,14 @@ void label(HDC dc, const wchar_t* value, RECT rectangle, HFONT font, COLORREF co
     DrawTextW(dc, value, -1, &rectangle, format | DT_NOPREFIX); SelectObject(dc, old);
 }
 Theme::Theme() { background = CreateSolidBrush(colors::background); surface = CreateSolidBrush(colors::surface); setDpi(96); }
-Theme::~Theme() { DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(background); DeleteObject(surface); }
+Theme::~Theme() { DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(result); DeleteObject(background); DeleteObject(surface); }
 int Theme::px(int value) const { return MulDiv(value, static_cast<int>(dpi), 96); }
 void Theme::setDpi(UINT value) {
-    dpi = value; DeleteObject(body); DeleteObject(title); DeleteObject(small);
+    dpi = value; DeleteObject(body); DeleteObject(title); DeleteObject(small); DeleteObject(result);
     auto font = [&](int size, int weight) { return CreateFontW(-px(size), 0, 0, 0, weight, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Microsoft YaHei UI"); };
     body = font(14, FW_NORMAL); title = font(23, FW_SEMIBOLD); small = font(12, FW_NORMAL);
+    result = font(18, FW_MEDIUM);
 }
 void Theme::style(HWND control) {
     SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(body), TRUE);

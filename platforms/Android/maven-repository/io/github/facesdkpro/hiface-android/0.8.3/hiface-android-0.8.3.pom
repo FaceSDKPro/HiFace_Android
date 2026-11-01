@@ -9,7 +9,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.facesdkpro</groupId>
   <artifactId>hiface-android</artifactId>
-  <version>0.8.2</version>
+  <version>0.8.3</version>
   <packaging>aar</packaging>
   <name>HiFace Android SDK</name>
   <description>Android face detection, capture, liveness, 1:1 verification, and 1:N/M:N face search SDK.</description>

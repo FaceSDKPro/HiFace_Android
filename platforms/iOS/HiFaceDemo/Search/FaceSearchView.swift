@@ -7,6 +7,7 @@ struct FaceSearchView: View {
     @ObservedObject var model: CameraDemoModel
     let onClose: () -> Void
     @State private var showsSearchSettings = false
+    @State private var showsResultDetails = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,6 +16,7 @@ struct FaceSearchView: View {
                 FaceSearchOverlayView(overlay: model.searchOverlay, mirrored: model.overlayMirrored)
                 VStack {
                     DemoCameraControls(model: model, onClose: onClose,
+                                       showsResolution: false,
                                        onSwitchCamera: model.switchCamera,
                                        onSearchSettings: { showsSearchSettings = true })
                     Spacer()
@@ -32,38 +34,36 @@ struct FaceSearchView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
-            Text(model.searchOptions)
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.white.opacity(0.75))
-                .padding(.vertical, 6)
             VStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 7) {
-                        Circle().fill(model.phase == .failed ? Color.red : DemoTheme.searchAccent)
-                            .frame(width: 6, height: 6)
-                        Text(model.status).font(.subheadline.weight(.semibold))
-                            .lineLimit(2)
-                    }
-                    Text(model.cameraNotice ?? model.detail ?? DemoL10n.text("面向镜头，入镜后自动识别"))
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.75))
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 8) {
+                    Button { showsResultDetails = true } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 7) {
+                                Circle().fill(model.phase == .failed ? Color.red : DemoTheme.searchAccent)
+                                    .frame(width: 6, height: 6)
+                                Text(livenessCaption).font(.body.weight(.semibold))
+                                    .lineLimit(1).minimumScaleFactor(0.75)
+                                    .accessibilityIdentifier("search.caption.mode")
+                            }.frame(height: 26)
+                            Text(resultCaption).font(.headline)
+                                .lineLimit(1).truncationMode(.middle)
+                                .frame(maxWidth: .infinity, minHeight: 26, maxHeight: 26, alignment: .leading)
+                                .accessibilityIdentifier("search.caption.result")
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }.buttonStyle(.plain)
                     if model.phase == .failed {
-                        if model.needsCameraSettings {
-                            CameraSettingsLink()
-                        } else if model.failureAllowsRetry {
+                        if model.needsCameraSettings { CameraSettingsLink() }
+                        else if model.failureAllowsRetry {
                             Button(DemoL10n.text("重试")) { model.resumeSearch() }
                                 .foregroundStyle(DemoTheme.searchAccent)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
                         }
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                // Two fixed rows keep the preview stable as scores and errors change.
+                // 状态、评分和错误切换时始终固定两行，不挤动摄像头预览。
+                .frame(height: 56)
+                .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(DemoTheme.searchSurface, in: RoundedRectangle(cornerRadius: 12))
-                .accessibilityElement(children: .combine)
-                .accessibilityAddTraits(.updatesFrequently)
                 HStack(spacing: 10) {
                     NavigationLink(destination: LazyDestination {
                         CameraDemoView(mode: .capture, enrollsInSearchLibrary: true)
@@ -94,6 +94,31 @@ struct FaceSearchView: View {
                 model.updateSearchConfiguration($0)
             }
         }
+        .sheet(isPresented: $showsResultDetails) {
+            NavigationView {
+                ScrollView { Text(fullDetails).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding() }
+                    .navigationTitle(DemoL10n.text("人脸搜索识别"))
+                    .toolbar { Button(DemoL10n.text("返回")) { showsResultDetails = false } }
+            }
+        }
+    }
+
+    private var livenessCaption: String {
+        guard model.phase != .failed, let score = model.searchOverlay.confirmedLivenessScore else { return model.searchOptions }
+        return model.searchOptions + " · " + String(format: "%.3f", locale: Locale(identifier: "en_US_POSIX"), score)
+    }
+
+    private var resultCaption: String {
+        let results = model.searchOverlay.confirmedResults
+        let value = model.phase != .failed && model.cameraNotice == nil && !results.isEmpty
+            ? results.map(\.title).joined(separator: " · ")
+            : model.cameraNotice ?? model.detail ?? model.status
+        return value.replacingOccurrences(of: "\r", with: " ").replacingOccurrences(of: "\n", with: " ")
+    }
+
+    private var fullDetails: String {
+        ([model.searchOptions, model.status, model.cameraNotice ?? model.detail ?? ""]
+            + model.searchOverlay.confirmedResults.map { $0.title + "\n" + $0.details }).joined(separator: "\n")
     }
 
 }

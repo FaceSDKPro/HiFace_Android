@@ -17,6 +17,8 @@ struct Box {
     bool selected = false;
     std::vector<std::array<HiFacePointV1, 2>> contours;
     SearchMark search_mark = SearchMark::None;
+    std::string face_id;
+    std::optional<float> similarity, liveness;
 };
 std::vector<Box> detectionBoxes(const HiFaceFaceV1* faces, uint32_t count);
 std::vector<Box> searchBoxes(const HiFaceSearchCameraResultV1& result, bool completed = true);

@@ -38,7 +38,7 @@ public:
     const std::vector<Control>& controls() const { return controls_; }
 private:
     void text(int x, int y, std::string value, uint32_t color, int max_width, Font font = Font::Body);
-    void wrap(int x, int y, const std::string& value, uint32_t color, int width, int max_lines = 2, Font font = Font::Body);
+    int wrap(int x, int y, const std::string& value, uint32_t color, int width, int max_lines = 2, Font font = Font::Body);
     void card(Rect rect);
     void button(Rect rect, const std::string& label, const std::string& action, int style = 0, bool enabled = true, Font font = Font::Body);
     void field(Rect rect, const std::string& key, const std::string& label, const std::string& initial = "", bool enabled = true);
@@ -48,6 +48,7 @@ private:
     void home(const ViewState& state, Rect body);
     void startupFailure(const ViewState& state);
     void camera(const ViewState& state, Rect body);
+    void searchResults(const ViewState& state, Rect panel);
     void photos(const ViewState& state, Rect body);
     void imageSearch(const ViewState& state, Rect body);
     void library(const ViewState& state, Rect body);

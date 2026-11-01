@@ -495,6 +495,11 @@ std::vector<Command> DesktopWindow::events(const ViewState& state) {
     }
     auto commands = ui.ui.takeCommands();
     commands.erase(std::remove_if(commands.begin(), commands.end(), [&](const Command& command) {
+        if (command.type == "copy-text" && !command.values.empty()) {
+            ui.clipboard_text = command.values.front();
+            ui.XSetSelectionOwner_fn(ui.display, ui.clipboard, ui.window, CurrentTime);
+            return true;
+        }
         if (command.type != "settings") return false;
         try {
             if (parseSettings(command.fields).ui_rotation) ui.ensureRotationRenderer();

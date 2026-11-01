@@ -1,7 +1,7 @@
 {
   "modelVersion": "5.0.0",
   "name": "hiface-harmony-workspace",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "HiFace HarmonyOS SDK and demo workspace",
   "author": "HiFace",
   "license": "LicenseRef-HiFace-Test-Only",

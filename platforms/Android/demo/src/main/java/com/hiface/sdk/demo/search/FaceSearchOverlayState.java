@@ -51,6 +51,7 @@ final class FaceSearchOverlayState {
         final String details;
         final boolean livenessRejected;
         final boolean finalResult;
+        final Float livenessScore;
 
         Score(FaceSearchFace face, long frameId, long deadline, Float livenessScore,
                 boolean livenessRejected, boolean finalResult) {
@@ -59,6 +60,7 @@ final class FaceSearchOverlayState {
             this.deadline = deadline;
             this.livenessRejected = livenessRejected;
             this.finalResult = finalResult;
+            this.livenessScore = livenessScore;
             boolean matched = face.isThresholdPassed() && face.getFaceId() != null;
             // Only a database score can establish an identity mismatch; low scores remain in SDK results.
             // 只有查库给出分数，才能断言身份未匹配；低分仍保留在 SDK 结果中。
@@ -87,6 +89,30 @@ final class FaceSearchOverlayState {
     FaceSearchFace score(int index) { return scores[index] == null ? null : scores[index].face; }
     String label(int index) { return scores[index] == null ? "" : scores[index].label; }
     String details(int index) { return scores[index] == null ? "" : scores[index].details; }
+    // Read full, confirmed identities from the same expiring samples as the boxes.
+    // 完整身份与人脸框共用同一份到期采样，不能把旧身份留在结果卡片中。
+    String resultText() {
+        StringBuilder text = new StringBuilder();
+        if (displayed == null) return "";
+        for (int i = 0; i < displayed.getFaces().size(); i++) {
+            Score value = scores[i];
+            if (value == null || !value.finalResult) continue;
+            if (text.length() > 0) text.append("\n\n");
+            if (value.livenessRejected) text.append(livenessRejectedLabel);
+            else if (value.face.isThresholdPassed() && value.face.getFaceId() != null)
+                text.append("Face ID: ").append(value.face.getFaceId());
+            else text.append(unmatchedLabel);
+            if (!value.details.isEmpty()) text.append('\n').append(value.details);
+        }
+        return text.toString();
+    }
+
+    Float livenessScore() {
+        for (Score value : scores)
+            if (value != null && value.finalResult && value.livenessScore != null)
+                return value.livenessScore;
+        return null;
+    }
     /**
      * Use gray without a score and red for liveness rejection; show green for a qualifying similarity only
      * after terminal confirmation.
@@ -206,6 +232,17 @@ final class FaceSearchOverlayState {
             scores[0] = new Score(frame.getFaces().get(0), frameId,
                     now + SCORE_HOLD_MILLIS, result.getLivenessScore(), true, true);
             scoredThisFrame |= 1;
+        }
+        // Keep this exact frame's negative outcome visible after old positive scores are invalidated.
+        // 旧匹配评分失效后，仍展示当前这一帧的未匹配结果；不能借给新的人脸。
+        if (result.getEndReason() == FaceSearchResult.EndReason.TIMEOUT && frameId == newestFrameId
+                && frame.getFaces().size() == displayed.getFaces().size()) {
+            for (int i = 0; i < frame.getFaces().size(); i++) {
+                FaceSearchFace face = frame.getFaces().get(i);
+                if (scores[i] == null && !face.isThresholdPassed())
+                    scores[i] = new Score(face, frameId, now + SCORE_HOLD_MILLIS,
+                            result.getLivenessScore(), false, true);
+            }
         }
     }
 

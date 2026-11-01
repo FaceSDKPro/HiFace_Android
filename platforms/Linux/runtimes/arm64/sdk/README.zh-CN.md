@@ -64,5 +64,5 @@ JPEG/PNG 解码和摄像头适配见独立 Demo。
 支持奇数尺寸，每边最大 4096；宿主提供该 IR 图像内的人脸框（左上角加宽高，至少 10×10）和
 目标摄像头标定的真人阈值。成功返回后，`real_score >= real_threshold` 才通过；失败不能放行。
 
-完整 C 消费示例为 `../../../examples/image-search/infrared_liveness.c`。SDK 不管理 IR 摄像头采集、IR 人脸检测或补光，
+完整 C 消费示例为 `examples/infrared_liveness.c`。SDK 不管理 IR 摄像头采集、IR 人脸检测或补光，
 此入口不改变 RGB 相机活体和搜索流程。

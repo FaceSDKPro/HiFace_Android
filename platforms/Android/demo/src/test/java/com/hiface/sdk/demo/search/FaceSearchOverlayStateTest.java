@@ -8,6 +8,31 @@ import java.util.Arrays;
 import static org.junit.Assert.*;
 
 public final class FaceSearchOverlayStateTest {
+    @Test public void resultCardPreservesFullIdZeroScoreAndClearsOldIdentity() {
+        FaceSearchOverlayState state = newState();
+        String id = new String(new char[900]).replace('\0', 'X') + "-END";
+        FaceSearchFrame matched = frame(1, face(20, .98f, id));
+        state.accept(matched, 0);
+        assertEquals("", state.resultText());
+        state.complete(new FaceSearchResult(FaceSearchResult.EndReason.MATCH_FOUND, 0f, matched), 100);
+        assertTrue(state.resultText().contains("Face ID: " + id));
+        assertTrue(state.resultText().contains("0.000"));
+        assertEquals(Float.valueOf(0f), state.livenessScore());
+        show(state, frame(2), 200);
+        assertEquals("", state.resultText());
+        assertNull(state.livenessScore());
+        FaceSearchFrame low = frame(3, face(20, .4f, null));
+        show(state, low, 300);
+        state.complete(new FaceSearchResult(FaceSearchResult.EndReason.TIMEOUT, null, low), 400);
+        assertFalse(state.resultText().isEmpty());
+        assertFalse(state.resultText().contains("Face ID:"));
+        state.expire(1400);
+        assertEquals("", state.resultText());
+        FaceSearchFrame spoof = frame(4, face(20, .98f, id));
+        state.accept(spoof, 2000);
+        state.complete(new FaceSearchResult(FaceSearchResult.EndReason.SPOOF_DETECTED, .2f, spoof), 2100);
+        assertFalse(state.resultText().contains(id));
+    }
     @Test public void earlyExpiryCheckDoesNotClearAFrameWhoseDeadlineWasExtended() {
         FaceSearchOverlayState state = newState();
         FaceSearchOverlayExpirySchedule schedule = new FaceSearchOverlayExpirySchedule();

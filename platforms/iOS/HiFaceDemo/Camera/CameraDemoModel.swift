@@ -807,8 +807,7 @@ final class CameraDemoModel: ObservableObject {
         failureAllowsRetry = false
         phase = .failed
         status = DemoL10n.text("配置无效")
-        detail = (error as? HiFaceError).map { DemoErrorPresentation.message(for: $0) }
-            ?? DemoErrorPresentation.message(for: error)
+        detail = DemoErrorPresentation.message(for: error)
         pipeline.pauseAnalysis()
         resetActionProgress()
     }

@@ -25,10 +25,4 @@
             android:background="@drawable/bg_search_pill" android:textColor="@android:color/white"
             android:textSize="11sp" android:maxLines="2" android:visibility="gone"/>
     </FrameLayout>
-    <TextView android:id="@+id/searchOptions" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:gravity="center"
-        android:paddingStart="16dp" android:paddingEnd="16dp"
-        android:paddingTop="6dp" android:paddingBottom="6dp"
-        android:textColor="@color/text_on_dark_secondary" android:textSize="11sp"
-        android:maxLines="1" android:ellipsize="end"/>
 </LinearLayout>

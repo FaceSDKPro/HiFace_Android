@@ -38,6 +38,7 @@ private final class ImageSearchModel: ObservableObject {
         task = Task { [weak self, sdk] in
             let extracted = await sdk.captureFaces(image)
             guard let self, !Task.isCancelled, token == version else { return }
+            defer { if token == version { task = nil } }
             do {
                 let captures = try extracted.get()
                 if captures.isEmpty {
@@ -85,13 +86,17 @@ private final class ImageSearchModel: ObservableObject {
             } catch {
                 guard !Task.isCancelled, token == version else { return }
                 processing = false
-                status = DemoErrorPresentation.message(for: error as? HiFaceError ??
-                    HiFaceError(code: .processingFailed, message: String(describing: error)))
+                status = DemoErrorPresentation.message(for: error)
             }
         }
     }
 
-    func pickerFailed(_ error: HiFaceError) { status = DemoErrorPresentation.message(for: error) }
+    func pickerFailed(_ error: HiFaceError) {
+        // A failed replacement also invalidates the previous search, while retaining its displayed photo.
+        // 换图失败也要使上一轮搜索失效，同时保留当前展示的照片。
+        stop()
+        status = DemoErrorPresentation.message(for: error)
+    }
     func stop() {
         task?.cancel(); task = nil; version += 1
         if processing {

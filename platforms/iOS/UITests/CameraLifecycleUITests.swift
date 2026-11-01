@@ -19,7 +19,7 @@ final class CameraLifecycleUITests: XCTestCase {
     @MainActor
     private func checkBackgroundResume(page: String) {
         let app = XCUIApplication()
-        app.launchArguments = ["--camera-lifecycle-test"]
+        app.launchArguments = ["--camera-lifecycle-test", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         app.launch()
         let entry = app.descendants(matching: .any)["demo.feature.\(page)"].firstMatch
         XCTAssertTrue(entry.waitForExistence(timeout: 10))
@@ -36,6 +36,15 @@ final class CameraLifecycleUITests: XCTestCase {
         let frame = app.staticTexts["camera.liveFrame"].firstMatch
         XCTAssertTrue(frame.waitForExistence(timeout: 10))
         waitForFrames(frame, after: 0)
+        waitForRunningFlow(app)
+        let cameraSwitch = app.buttons["切换摄像头"].firstMatch
+        for _ in 0..<2 {
+            XCTAssertTrue(cameraSwitch.waitForExistence(timeout: 5))
+            cameraSwitch.tap()
+            let changedTimestamp = timestamp(frame)
+            waitForFrames(frame, after: changedTimestamp)
+            waitForRunningFlow(app)
+        }
         // Repeated transitions cover active to inactive to background to inactive to active.
         // 多轮切换覆盖 active → inactive → background → inactive → active。
         for _ in 0..<3 {
@@ -45,7 +54,12 @@ final class CameraLifecycleUITests: XCTestCase {
             XCTAssertTrue(frame.waitForExistence(timeout: 10))
             let restoredTimestamp = timestamp(frame)
             waitForFrames(frame, after: restoredTimestamp)
+            waitForRunningFlow(app)
         }
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = page + " after camera switches and background recovery"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
         app.terminate()
     }
 
@@ -55,10 +69,51 @@ final class CameraLifecycleUITests: XCTestCase {
     }
 
     @MainActor
+    private func waitForRunningFlow(_ app: XCUIApplication) {
+        let phase = app.staticTexts["camera.phase"].firstMatch
+        let running = NSPredicate(format: "value == %@", "running")
+        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: running, object: phase)], timeout: 12)
+        XCTAssertEqual(result, .completed, "相机出帧时 SDK 也必须处于运行状态")
+    }
+
+    @MainActor
     private func waitForFrames(_ frame: XCUIElement, after previous: Double) {
         let advancing = NSPredicate { [self] _, _ in timestamp(frame) > previous + 0.5 }
         let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: advancing, object: nil)], timeout: 12)
         XCTAssertEqual(result, .completed, "恢复后必须持续输出新帧，不能停在最后一帧")
+    }
+}
+
+/// Check the ordinary search page without test-only camera diagnostics.
+/// 验证普通搜索页面，不启用仅供测试的相机诊断文字。
+final class SearchPresentationUITests: XCTestCase {
+    @MainActor
+    func testNormalSearchPresentation() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        app.launch()
+        let entry = app.descendants(matching: .any)["demo.feature.人脸搜索识别"].firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        if !entry.isHittable { app.swipeUp() }
+        entry.tap()
+        XCTAssertTrue(app.staticTexts["1:N · 活体已开启"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Running: Search"].exists)
+        XCTAssertFalse(app.staticTexts["camera.liveFrame"].exists)
+        let mode = app.staticTexts["search.caption.mode"]
+        let result = app.staticTexts["search.caption.result"]
+        XCTAssertTrue(mode.exists && result.exists)
+        let baseline = result.frame.minY
+        mode.tap()
+        XCTAssertTrue(app.navigationBars["人脸搜索识别"].waitForExistence(timeout: 5))
+        app.navigationBars["人脸搜索识别"].buttons["返回"].tap()
+        XCTAssertTrue(result.waitForExistence(timeout: 5))
+        XCTAssertEqual(result.frame.minY, baseline, accuracy: 0.5)
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Face search normal presentation"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.terminate()
     }
 }
 

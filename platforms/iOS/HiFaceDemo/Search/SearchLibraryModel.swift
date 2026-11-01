@@ -330,8 +330,7 @@ final class SearchLibraryModel: ObservableObject {
 
     private func finish(_ error: Error, generation: Int) {
         guard isCurrent(generation) else { return }
-        status = (error as? HiFaceError).map(DemoErrorPresentation.message(for:))
-            ?? DemoErrorPresentation.message(for: error)
+        status = DemoErrorPresentation.message(for: error)
         hasError = true
         canLoadMore = false
         finish(generation)

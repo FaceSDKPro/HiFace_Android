@@ -1,12 +1,12 @@
 {
   "name": "demo",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "HiFace HarmonyOS integration demo",
   "main": "",
   "author": "HiFace",
   "license": "LicenseRef-HiFace-Test-Only",
   "dependencies": {
-    "hiface": "file:../libs/hiface-0.8.2.har"
+    "hiface": "file:../libs/hiface-0.8.3.har"
   },
   "devDependencies": {},
   "dynamicDependencies": {}

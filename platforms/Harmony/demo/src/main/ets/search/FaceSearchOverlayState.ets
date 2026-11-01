@@ -92,6 +92,30 @@ export class FaceSearchOverlayState {
 
   frame(): FaceSearchFrame | undefined { return this.displayed; }
 
+  // Share confirmation and expiry with the overlay; never truncate a Face ID in the result card.
+  // 与人脸框共用确认和到期规则，结果卡片不截断 Face ID。
+  resultText(): string {
+    let text: string = '';
+    for (let index: number = 0; index < this.scores.length; index++) {
+      const value: HeldSearchScore | undefined = this.scores[index];
+      if (value === undefined || !value.finalResult) continue;
+      const visual: FaceSearchOverlayVisual = value.visual();
+      const title: string = value.spoofRejected ? DemoL10n.text("活体未通过") :
+        value.face.thresholdPassed && value.face.faceId !== undefined ? `Face ID: ${value.face.faceId}` :
+          DemoL10n.text("未匹配");
+      if (text.length > 0) text += '\n\n';
+      text += title + (visual.details.length > 0 ? `\n${visual.details}` : '');
+    }
+    return text;
+  }
+
+  livenessScore(): number | undefined {
+    for (const value of this.scores) {
+      if (value !== undefined && value.finalResult && value.livenessScore !== undefined) return value.livenessScore;
+    }
+    return undefined;
+  }
+
   visual(index: number): FaceSearchOverlayVisual {
     return this.scores[index]?.visual() ?? UNSCORED_VISUAL;
   }
@@ -198,6 +222,18 @@ export class FaceSearchOverlayState {
         now + SCORE_HOLD_MILLIS, result.livenessScore, true, true);
       this.scoredThisFrame |= 1;
       changed = true;
+    }
+    // Preserve only the current frame's negative result after clearing an older identity.
+    // 清除旧身份后，只保留当前这一帧的未匹配结果。
+    if (result.endReason === FaceSearchEndReason.TIMEOUT && frameId === this.newestFrameId &&
+      frame.faces.length === this.displayed.faces.length) {
+      for (let index: number = 0; index < frame.faces.length; index++) {
+        if (this.scores[index] === undefined && !frame.faces[index].thresholdPassed) {
+          this.scores[index] = new HeldSearchScore(frame.faces[index], frameId,
+            now + SCORE_HOLD_MILLIS, result.livenessScore, false, true);
+          changed = true;
+        }
+      }
     }
     return changed;
   }

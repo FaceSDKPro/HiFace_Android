@@ -1,4 +1,4 @@
-# HiFace 0.8.2 API 指南
+# HiFace 0.8.3 API 指南
 
 [English](API.md) | 简体中文
 

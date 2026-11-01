@@ -32,6 +32,11 @@ public final class FaceSearchOverlayView extends View {
     private Matrix transform;
     private final FaceSearchOverlayExpirySchedule expirySchedule = new FaceSearchOverlayExpirySchedule();
     private final Runnable expire = this::expireState;
+    private Runnable onResultChanged;
+
+    public void setOnResultChanged(Runnable listener) { onResultChanged = listener; }
+    public String resultText() { return state.resultText(); }
+    public Float livenessScore() { return state.livenessScore(); }
 
     /**
      * Expire scores or stalled imagery at the next deadline, refreshing even when no new frame arrives.
@@ -103,6 +108,7 @@ public final class FaceSearchOverlayView extends View {
         state.clear();
         transform = null;
         invalidate();
+        if (onResultChanged != null) onResultChanged.run();
     }
 
     /**
@@ -159,6 +165,7 @@ public final class FaceSearchOverlayView extends View {
      * 只安排最近一次到期刷新，避免每来一帧就重复排队延时任务。
      */
     private void scheduleExpiry() {
+        if (onResultChanged != null) onResultChanged.run();
         long deadline = state.expiresAt();
         if (!expirySchedule.update(deadline)) return;
         removeCallbacks(expire);

@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-SDK / Demo：**0.8.2 Beta**
+SDK / Demo：**0.8.3 Beta**
 
 支持检测、采集、活体、1:1 比对、1:N/M:N 搜索和人脸库管理，算法在设备端运行。
 
@@ -41,7 +41,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("io.github.facesdkpro:hiface-android:0.8.2")
+    implementation("io.github.facesdkpro:hiface-android:0.8.3")
 }
 android {
     defaultConfig {

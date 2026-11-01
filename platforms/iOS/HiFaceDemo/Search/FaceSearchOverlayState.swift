@@ -24,12 +24,18 @@ struct FaceSearchOverlayState {
         let frameID: UInt64
         let deadline: TimeInterval
         let box: Box
+        let finalResult: Bool
+        let livenessRejected: Bool
+        let livenessScore: Float?
 
         init(face: FaceSearchFace, frameID: UInt64, deadline: TimeInterval,
              livenessScore: Float?, livenessRejected: Bool, finalResult: Bool) {
             self.face = face
             self.frameID = frameID
             self.deadline = deadline
+            self.finalResult = finalResult
+            self.livenessRejected = livenessRejected
+            self.livenessScore = livenessScore
             let faceID = face.thresholdPassed ? face.faceID : nil
             // Only an actual lookup score can establish mismatch; low scores remain in SDK results.
             // 只有实际查库评分才能判定未匹配，低分仍保留在 SDK 结果中。
@@ -68,6 +74,25 @@ struct FaceSearchOverlayState {
     private var associationEnabled = true
 
     var hasVisibleFaces: Bool { frame?.faces.isEmpty == false }
+
+    // The card shares box expiry and confirmation; full IDs never come from an unrelated last result.
+    // 卡片与人脸框共用到期和确认规则，完整 ID 不能取自无关的上一轮结果。
+    var confirmedResults: [Box] {
+        scores.compactMap { value in
+            guard let value, value.finalResult else { return nil }
+            let title = value.livenessRejected ? DemoL10n.text("活体未通过")
+                : value.box.color == .matched ? "Face ID: \(value.face.faceID ?? "")"
+                : DemoL10n.text("未匹配")
+            return Box(color: value.box.color, title: title, details: value.box.details)
+        }
+    }
+
+    var confirmedLivenessScore: Float? {
+        for value in scores {
+            if let value, value.finalResult, let score = value.livenessScore { return score }
+        }
+        return nil
+    }
 
     var expiresAt: TimeInterval? {
         guard let frame, !frame.faces.isEmpty else { return nil }
@@ -165,6 +190,16 @@ struct FaceSearchOverlayState {
                               livenessRejected: true, finalResult: true)
             scoredThisFrame |= 1
             changed = true
+        }
+        // A current negative result remains readable without reviving an older identity.
+        // 当前未匹配结果应可读，但不能恢复旧身份。
+        if result.endReason == .timeout, frameID == newestFrameID,
+           resultFrame.faces.count == displayed.faces.count {
+            for index in scores.indices where scores[index] == nil && !resultFrame.faces[index].thresholdPassed {
+                scores[index] = Score(face: resultFrame.faces[index], frameID: frameID, deadline: now + 1,
+                                      livenessScore: result.livenessScore, livenessRejected: false, finalResult: true)
+                changed = true
+            }
         }
         return changed
     }

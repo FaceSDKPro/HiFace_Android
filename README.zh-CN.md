@@ -2,9 +2,9 @@
 
 [English](README.md) | 简体中文
 
-**0.8.2 Beta**
+**0.8.3 Beta**
 
-Android、iOS、Harmony、Windows 和 Linux SDK 与 Demo 统一更新至 0.8.2。
+Android、iOS、Harmony、Windows 和 Linux SDK 与 Demo 统一更新至 0.8.3。
 
 ### 离线人脸检测、采集、活体、1:1 比对及 1:N/M:N 搜索。
 
@@ -32,7 +32,9 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - SDK正在Beta 迭代公测中，请及时升级SDK版本。
 - 当前模型不支持12周岁以下儿童人脸识别，不能用于金融相关场景。
 - 人脸搜索识别要求摄像头成像清晰；室外环境下，摄像头宽动态范围须大于 100 dB。
-- 其他平台在完善支持中，有问题请提issues。
+- 移动端运行需配置自己的应用签名。
+
+其他平台在完善支持中，有问题请提 issues。
 
 [版本下载](https://github.com/FaceSDKPro/HelloFace/releases) · [Android APK 构建](https://github.com/FaceSDKPro/HelloFace/actions/workflows/android-demo.yml) · [问题反馈](https://github.com/FaceSDKPro/HelloFace/issues)
 

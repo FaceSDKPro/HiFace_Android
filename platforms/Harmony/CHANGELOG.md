@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3]
+
+- Unified trial and commercial authorization in the shared Core/SQLite runtime.db; old state is not migrated.
+- Fixed inconsistent status at feature expiry and startup error 14 during concurrent activation/renewal; identical certificate import remains idempotent.
+- Simplified the two-line face-search status, retaining complete face IDs and liveness scores.
+- 本地候选准备中；构建、验收及发布批准待完成。
+
 ## [0.8.2]
 
 - 本地候选准备中；构建、验收及发布批准待完成。

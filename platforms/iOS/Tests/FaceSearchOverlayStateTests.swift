@@ -45,6 +45,33 @@ struct FaceSearchOverlayStateTests {
             FaceSearchFrame(frameID: id, imageWidth: 640, imageHeight: 480, faces: faces)
         }
 
+        // Result cards must keep full IDs, preserve real zero scores and clear stale identities.
+        // 结果卡片保留完整 ID 与真实零分，并清除过期身份。
+        let longID = String(repeating: "人员编号-", count: 80) + "END"
+        let longFace = FaceSearchFace(bounds: a, thresholdPassed: true, similarity: 0.98, faceID: longID)
+        var card = FaceSearchOverlayState()
+        card.accept(frame(1, [longFace]), now: 0)
+        precondition(card.confirmedResults.isEmpty)
+        card.complete(FaceSearchResult(endReason: .matchFound, livenessScore: 0,
+                                       frame: frame(1, [longFace])), now: 0.1)
+        precondition(card.confirmedResults.first?.title == "Face ID: " + longID)
+        precondition(card.confirmedResults.first?.details.contains("0.000") == true)
+        precondition(card.confirmedLivenessScore == 0)
+        card.accept(frame(2, []), now: 0.2)
+        precondition(card.confirmedResults.isEmpty && card.confirmedLivenessScore == nil)
+        card.accept(frame(3, [low]), now: 0.3)
+        card.complete(FaceSearchResult(endReason: .timeout, livenessScore: nil,
+                                       frame: frame(3, [low])), now: 0.4)
+        precondition(card.confirmedResults.first?.title == DemoL10n.text("未匹配"))
+        precondition(card.confirmedResults.first?.details.contains("Liveness") == false)
+        card.expire(now: 1.4)
+        precondition(card.confirmedResults.isEmpty)
+        card.accept(frame(4, [longFace]), now: 2)
+        card.complete(FaceSearchResult(endReason: .spoofDetected, livenessScore: 0.2,
+                                       frame: frame(4, [longFace])), now: 2.1)
+        precondition(card.confirmedResults.first?.title == DemoL10n.text("活体未通过"))
+        precondition(card.confirmedResults.first?.title.contains(longID) == false)
+
         var idle = FaceSearchOverlayState()
         for id in UInt64(1)...10_000 {
             precondition(!idle.accept(frame(id, []), now: Double(id) * 0.2))

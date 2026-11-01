@@ -263,7 +263,10 @@ void DesktopApp::captureLoop() {
             }
             const auto preview_interval = request.search_idle ? kSearchIdlePreviewIntervalMs : kPreviewIntervalMs;
             const auto analysis_interval = request.search_idle ? int64_t(HIFACE_IDLE_FRAME_INTERVAL_MS) : kAnalysisIntervalMs;
-            if (request.search_idle && cadence_now < std::min(next_preview_capture, next_analysis_capture)) {
+            // Both active and idle capture have deadlines. Sleep until the next
+            // due stream instead of polling every millisecond between frames.
+            // 活跃和待机采集都有截止时间；等待下一路到期，避免帧间每毫秒轮询。
+            if (cadence_now < std::min(next_preview_capture, next_analysis_capture)) {
                 std::unique_lock<std::mutex> lock(mutex_);
                 capture_changed_.wait_for(lock, std::chrono::milliseconds(std::min(next_preview_capture, next_analysis_capture) - cadence_now), [&] {
                     return stopping_ || capture_request_.generation != handled || capture_request_.search_idle != idle_applied;
@@ -676,9 +679,15 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 auto deadline = last_publish + 1000;
                 if (analyze && capture_state_.ready && capture_state_.analysis_frame && capture_state_.analysis_sequence != analyzed_sequence)
                     deadline = std::min(deadline, std::max(now + 1, next_analysis));
+                // Wake on a newly published frame even if it arrives just before
+                // next_analysis. The next loop can then wait for that deadline;
+                // otherwise the early notification is lost until another frame.
+                // 新帧即使略早于 next_analysis 也应唤醒，下一轮再等待识别截止时间；
+                // 否则会错过本次通知，一直多等到另一帧到达。
+                const auto waiting_sequence = capture_state_.analysis_sequence;
                 work_changed_.wait_for(lock, std::chrono::milliseconds(std::max<int64_t>(1, deadline - now)), [&] {
                     return stopping_ || !commands_.empty() || (analyze && !workflow.pendingEnrollment() && !workflow.resultPending() && capture_state_.ready &&
-                        capture_state_.analysis_sequence != analyzed_sequence && monotonicMilliseconds() >= next_analysis);
+                        capture_state_.analysis_sequence != waiting_sequence);
                 });
             }
         }

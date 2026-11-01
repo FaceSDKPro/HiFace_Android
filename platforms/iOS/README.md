@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-SDK: **0.8.2 Beta**
+SDK: **0.8.3 Beta**
 
 On-device detection, capture, liveness, 1:1 comparison, 1:N/M:N search and face-library management.
 

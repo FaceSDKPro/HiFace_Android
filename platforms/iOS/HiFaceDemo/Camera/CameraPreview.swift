@@ -37,12 +37,23 @@ struct CameraPreview: UIViewRepresentable {
     }
 
     func updateUIView(_ view: CameraPreviewView, context: Context) {
-        view.previewLayer.videoGravity = CameraPreviewLayout.gravity
         guard let connection = view.previewLayer.connection else { return }
-        if connection.isVideoOrientationSupported { connection.videoOrientation = .portrait }
-        if connection.isVideoMirroringSupported {
-            connection.automaticallyAdjustsVideoMirroring = false
-            connection.isVideoMirrored = mirrored
+        // SwiftUI updates this view for each result; configure the connection only when a value changes.
+        // SwiftUI 会随检测结果更新此视图；仅在值改变时配置连接，避免逐帧重复设置。
+        if connection.isVideoOrientationSupported, connection.videoOrientation != .portrait {
+            connection.videoOrientation = .portrait
         }
+        if connection.isVideoMirroringSupported {
+            if connection.automaticallyAdjustsVideoMirroring {
+                connection.automaticallyAdjustsVideoMirroring = false
+            }
+            if connection.isVideoMirrored != mirrored { connection.isVideoMirrored = mirrored }
+        }
+    }
+
+    static func dismantleUIView(_ view: CameraPreviewView, coordinator: ()) {
+        // Detach this preview; the screen model owns stopping the shared capture session.
+        // 这里只解除预览绑定；共享采集会话由页面模型负责停止。
+        view.previewLayer.session = nil
     }
 }

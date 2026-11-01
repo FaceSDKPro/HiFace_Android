@@ -133,6 +133,13 @@ struct CameraDemoView: View {
                     .accessibilityIdentifier("camera.liveFrame")
                     .accessibilityValue(String(model.cameraTestFrameTimestamp))
                     .allowsHitTesting(false)
+                // Fresh camera frames alone do not prove the SDK flow recovered.
+                // 只有相机新帧不能证明 SDK 流程也已恢复。
+                Text("Camera phase")
+                    .font(.caption2)
+                    .accessibilityIdentifier("camera.phase")
+                    .accessibilityValue(String(describing: model.phase))
+                    .allowsHitTesting(false)
             }
             #endif
         }

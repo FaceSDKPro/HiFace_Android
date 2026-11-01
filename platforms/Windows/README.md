@@ -1,4 +1,4 @@
-# HiFace Windows · 0.8.2 Beta
+# HiFace Windows · 0.8.3 Beta
 
 English | [简体中文](README.zh-CN.md)
 
