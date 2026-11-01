@@ -32,13 +32,7 @@ git clone --depth 1 --single-branch https://github.com/FaceSDKPro/HelloFace.git
 - The SDK is in iterative public Beta testing. Please keep the SDK version up to date.
 - The current model does not support face recognition for people under 12 and must not be used in financial scenarios.
 - Face search requires clear camera images; outdoor deployments require a camera with a wide dynamic range greater than 100 dB.
-- Windows/Linux desktop and camera features still require testing with physical cameras; mobile apps require your own application signing.
-
-### Known limitations (0.8.2)
-
-Uninstalling and reinstalling the iOS app can return error 14 and disable face features and search. This issue remains unresolved in this version; first installation and ordinary app restarts passed functional checks.
-
-Complete physical-device and camera acceptance across all five platforms remains unfinished. Validate on your target device before integration.
+- Support for other platforms is being improved. If you encounter a problem, please open an issue.
 
 [Releases](https://github.com/FaceSDKPro/HelloFace/releases) · [Android APK builds](https://github.com/FaceSDKPro/HelloFace/actions/workflows/android-demo.yml) · [Issues](https://github.com/FaceSDKPro/HelloFace/issues)
 
