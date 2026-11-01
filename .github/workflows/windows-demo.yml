@@ -45,7 +45,21 @@ jobs:
           $Destination = Join-Path $env:RUNNER_TEMP "HelloFace-Windows-demo"
           Copy-Item -Recurse demo $Destination
           & "$Destination/bin/hiface_cli.exe" self-test
-          if ($LASTEXITCODE -ne 0) { throw "Portable Demo self-test failed" }
+          if ($LASTEXITCODE -ne 0) {
+            # Keep SDK model diagnostics, without exporting the authorization database.
+            # 仅输出 SDK 模型日志，不导出授权数据库或设备标识。
+            $LogDirectory = Join-Path $env:LOCALAPPDATA "HiFaceDemo/logs"
+            $Log = Get-ChildItem -LiteralPath $LogDirectory -Filter "cli-*.log" -ErrorAction SilentlyContinue |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($Log) {
+              Get-Content -LiteralPath $Log.FullName | Select-String -Pattern "HiFaceModels|HiFaceEngine" |
+                ForEach-Object { Write-Output $_.Line }
+            }
+            $RuntimeRoot = Join-Path $env:LOCALAPPDATA "HiFace/Runtime"
+            $Stores = @(Get-ChildItem -LiteralPath $RuntimeRoot -Filter "runtime.db" -Recurse -File -ErrorAction SilentlyContinue)
+            Write-Output ("Authorization store count: " + $Stores.Count)
+            throw "Portable Demo self-test failed"
+          }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: HelloFace-Windows-demo
