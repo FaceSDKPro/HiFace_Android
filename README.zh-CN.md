@@ -19,7 +19,7 @@ Android、iOS、Harmony、Windows 和 Linux SDK 与 Demo 统一更新至 0.8.2�
 | Windows | Windows 10/11 x64 · CPU | [Demo](platforms/Windows/README.zh-CN.md) · [SDK](platforms/Windows/sdk/README.zh-CN.md) |
 | Web 人脸录入 | 浏览器 | [在线体验](https://hiface-mdp.pages.dev/face/) |
 
-**更多平台（计划）：** 将支持微信小程序、Chrome、uni-app、Flutter 插件、React Native（RN）插件等。
+**更多平台（计划）：** 将支持微信小程序、ChromeOS、uni-app、Flutter 插件、React Native（RN）插件等。
 
 ## 获取代码
 

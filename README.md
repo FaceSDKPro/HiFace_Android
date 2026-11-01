@@ -19,7 +19,7 @@ Android, iOS, Harmony, Windows, and Linux SDKs and Demos are updated to 0.8.2.
 | Windows | Windows 10/11 x64 · CPU | [Demo](platforms/Windows/README.md) · [SDK](platforms/Windows/sdk/README.md) |
 | Web Face Enrollment | Browser | [Try online](https://hiface-mdp.pages.dev/face/) |
 
-**More platforms (planned):** WeChat Mini Programs, Chrome, uni-app, Flutter plugins, React Native (RN) plugins, and more.
+**More platforms (planned):** WeChat Mini Programs, ChromeOS, uni-app, Flutter plugins, React Native (RN) plugins, and more.
 
 ## Get the code
 
