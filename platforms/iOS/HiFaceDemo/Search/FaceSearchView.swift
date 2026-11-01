@@ -41,7 +41,7 @@ struct FaceSearchView: View {
                             HStack(spacing: 7) {
                                 Circle().fill(model.phase == .failed ? Color.red : DemoTheme.searchAccent)
                                     .frame(width: 6, height: 6)
-                                Text(livenessCaption).font(.body.weight(.semibold))
+                                Text(model.searchOptions).font(.body.weight(.semibold))
                                     .lineLimit(1).minimumScaleFactor(0.75)
                                     .accessibilityIdentifier("search.caption.mode")
                             }.frame(height: 26)
@@ -103,15 +103,11 @@ struct FaceSearchView: View {
         }
     }
 
-    private var livenessCaption: String {
-        guard model.phase != .failed, let score = model.searchOverlay.confirmedLivenessScore else { return model.searchOptions }
-        return model.searchOptions + " · " + String(format: "%.3f", locale: Locale(identifier: "en_US_POSIX"), score)
-    }
-
     private var resultCaption: String {
         let results = model.searchOverlay.confirmedResults
+        let best = model.searchOverlay.bestMatchCaption(includeLiveness: model.searchConfiguration.needsLiveness)
         let value = model.phase != .failed && model.cameraNotice == nil && !results.isEmpty
-            ? results.map(\.title).joined(separator: " · ")
+            ? best ?? results.map(\.title).joined(separator: " · ")
             : model.cameraNotice ?? model.detail ?? model.status
         return value.replacingOccurrences(of: "\r", with: " ").replacingOccurrences(of: "\n", with: " ")
     }

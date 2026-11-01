@@ -115,7 +115,7 @@ export struct RealtimeCameraDemo {
   @State private resultState: string = DemoL10n.text("启动相机后将持续检测人脸");
   @State private guideState: string = DemoL10n.text("实时检测");
   @State private searchResultText: string = '';
-  @State private searchLivenessScore: number | undefined = undefined;
+  @State private searchMatchCaption: string = '';
   @State private frontCamera: boolean = true;
   @State private currentMode: RealtimeMode = RealtimeMode.DETECTION;
   @State private capturedFace: image.PixelMap | undefined = undefined;
@@ -427,12 +427,13 @@ export struct RealtimeCameraDemo {
     Column({ space: 4 }) {
       Row({ space: 7 }) {
         Column().width(6).height(6).borderRadius(3).backgroundColor(this.statusColor())
-        Text(this.searchOptions() + (this.searchLivenessScore === undefined ? '' : ` · ${this.searchLivenessScore.toFixed(3)}`))
+        Text(this.searchOptions())
           .fontSize(17).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
       }.height(28).width('100%')
       Row({ space: 6 }) {
-        Text(this.searchResultText.length > 0 ? this.searchResultText.replace(/\r?\n/g, ' · ') : `${this.guideState} · ${this.resultState}`)
+        Text(this.searchMatchCaption.length > 0 ? this.searchMatchCaption :
+          this.searchResultText.length > 0 ? this.searchResultText.split('\n')[0] : `${this.guideState} · ${this.resultState}`)
           .fontSize(18).fontWeight(FontWeight.Medium).fontColor('#FFFFFF').maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis }).layoutWeight(1)
           .onClick(() => {
@@ -1683,8 +1684,9 @@ export struct RealtimeCameraDemo {
   private drawOverlay(): void {
     const resultText: string = this.isSearchMode() ? this.searchOverlayState.resultText() : '';
     if (this.searchResultText !== resultText) this.searchResultText = resultText;
-    const score: number | undefined = this.searchOverlayState.livenessScore();
-    if (this.searchLivenessScore !== score) this.searchLivenessScore = score;
+    const caption: string = this.isSearchMode() ? this.searchOverlayState.bestMatchCaption(
+      this.currentMode !== RealtimeMode.SEARCH_MULTI && this.searchConfiguration.needsLiveness) : '';
+    if (this.searchMatchCaption !== caption) this.searchMatchCaption = caption;
     if (this.overlayFramePending) return;
     this.overlayFramePending = true;
     try {

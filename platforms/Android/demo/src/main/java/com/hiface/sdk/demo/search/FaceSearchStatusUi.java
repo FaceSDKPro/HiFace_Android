@@ -28,7 +28,8 @@ final class FaceSearchStatusUi {
     private final View retry;
     private final View stateDot;
     private String modeText = "", stateTitle = "", hintText = "", fullResult = "";
-    private Float livenessScore;
+    private int stateTitleId;
+    private String matchCaption = "";
     private boolean errorVisible;
 
     FaceSearchStatusUi(View root) {
@@ -41,22 +42,21 @@ final class FaceSearchStatusUi {
         guidance.setOnClickListener(view -> showDetails());
     }
 
-    void renderResult(String text, Float score) {
+    void renderResult(String text, String caption) {
         fullResult = text;
-        livenessScore = score;
+        matchCaption = caption;
         renderCaption();
     }
 
     // Keep exactly two fixed rows; a dialog retains every ID character and all diagnostic text.
     // 固定两行不增高，完整 ID 和诊断提示在点击后查看/复制。
     private void renderCaption() {
-        String mode = modeText + (errorVisible || livenessScore == null ? "" : " · "
-                + String.format(java.util.Locale.ROOT, "%.3f", livenessScore));
-        String text = !errorVisible && !fullResult.isEmpty()
+        String text = !errorVisible && !matchCaption.isEmpty() ? matchCaption : !errorVisible && !fullResult.isEmpty()
                 ? fullResult.substring(0, fullResult.indexOf('\n') < 0 ? fullResult.length() : fullResult.indexOf('\n'))
-                : stateTitle + " · " + hintText;
+                : errorVisible ? hintText : stateTitleId == R.string.search_ui_empty_title
+                    ? context.getString(R.string.search_ui_empty_caption) : stateTitle;
         text = text.replace('\r', ' ').replace('\n', ' ');
-        if (!mode.contentEquals(options.getText())) options.setText(mode);
+        if (!modeText.contentEquals(options.getText())) options.setText(modeText);
         if (!text.contentEquals(guidance.getText())) guidance.setText(text);
         guidance.setContentDescription(text);
     }
@@ -177,6 +177,7 @@ final class FaceSearchStatusUi {
     private void showState(@StringRes int title, @StringRes int hint,
             @ColorRes int color, boolean canRetry) {
         stateTitle = context.getString(title);
+        stateTitleId = title;
         hintText = context.getString(hint);
         errorVisible = color == R.color.search_error_color;
         renderCaption();

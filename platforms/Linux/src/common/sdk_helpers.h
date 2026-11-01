@@ -4,11 +4,18 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <utility>
 #include <vector>
 namespace hiface_linux_demo {
 using Feature = std::array<float, HIFACE_FACE_FEATURE_DIMENSION>;
 using FeatureText = std::array<char, HIFACE_FEATURE_TEXT_BUFFER_SIZE>;
-struct DemoError { std::string message; HiFaceStatus status = HIFACE_STATUS_INTERNAL_ERROR; };
+struct DemoError {
+    std::string message;
+    HiFaceStatus status = HIFACE_STATUS_INTERNAL_ERROR;
+    bool sdk_status_known = false;
+    explicit DemoError(std::string text) : message(std::move(text)) {}
+    DemoError(std::string text, HiFaceStatus code) : message(std::move(text)), status(code), sdk_status_known(true) {}
+};
 
 inline const char* statusName(HiFaceStatus status) {
     switch (status) {

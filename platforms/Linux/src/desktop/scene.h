@@ -20,7 +20,7 @@ struct Rect {
     bool contains(int px, int py) const { return px >= x && px < x + w && py >= y && py < y + h; }
     Rect intersect(Rect other) const;
 };
-enum class Font { Body, Small, Title, Large };
+enum class Font { Body, Small, Title, Large, Caption };
 struct Draw {
     enum Kind { Box, Text, Image, Line, Dot } kind = Box;
     Rect bounds, clip;

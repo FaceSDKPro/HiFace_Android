@@ -36,6 +36,7 @@ public final class FaceSearchOverlayView extends View {
 
     public void setOnResultChanged(Runnable listener) { onResultChanged = listener; }
     public String resultText() { return state.resultText(); }
+    public String bestMatchCaption(boolean includeLiveness) { return state.bestMatchCaption(includeLiveness); }
     public Float livenessScore() { return state.livenessScore(); }
 
     /**

@@ -133,6 +133,7 @@
     <string name="search_ui_waiting_hint">面向镜头，入镜后自动识别</string>
     <string name="search_ui_searching_hint">正在匹配人脸库</string>
     <string name="search_ui_empty_title">当前范围内暂无已录入人脸</string>
+    <string name="search_ui_empty_caption">当前范围无人脸，请录入或导入</string>
     <string name="search_ui_empty_hint">请录入人脸或调整搜索设置</string>
     <string name="search_ui_interval_title">等待下一次搜索</string>
     <string name="search_ui_interval_hint">间隔结束后自动继续</string>

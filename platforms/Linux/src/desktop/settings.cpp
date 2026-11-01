@@ -1,5 +1,5 @@
 #include "settings.h"
-#include "gallery.h"
+#include "file_io.h"
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>

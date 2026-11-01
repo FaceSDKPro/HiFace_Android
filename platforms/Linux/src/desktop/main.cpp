@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <csignal>
+#include <unistd.h>
 using namespace hiface_linux_demo;
 namespace {
 volatile std::sig_atomic_t interrupted = 0;
@@ -25,6 +26,7 @@ int main(int argc, char** argv) {
                      "Camera shortcuts: D detection page, C capture, L liveness, V verify, E enroll, S search, P pause, X stop, M mirror, N next camera, Q quit.\n";
         return help ? 0 : 2;
     }
+    bool restart = false;
     try {
         if (camera_test) {
             Camera camera; CameraFrame frame;
@@ -81,7 +83,11 @@ int main(int argc, char** argv) {
             const auto state = app.snapshot();
             auto commands = window.events(*state);
             const bool user_command = !commands.empty();
-            for (auto& command : commands) app.post(std::move(command));
+            for (auto& command : commands) {
+                if (command.type == "restart") { restart = true; break; }
+                app.post(std::move(command));
+            }
+            if (restart) break;
             const auto paint_start = performance_log ? monotonicMilliseconds() : 0;
             const auto paint_now = monotonicMilliseconds();
             const bool painted = !state->search_idle || user_command || paint_now >= next_idle_paint;
@@ -110,9 +116,19 @@ int main(int argc, char** argv) {
             if (next_preview <= now) next_preview = now;
             else std::this_thread::sleep_for(std::chrono::milliseconds(next_preview - now));
         }
-        return 0;
+        if (!restart) return 0;
     } catch (const DemoError& error) { std::cerr << error.message << '\n'; }
     catch (const std::exception& error) { std::cerr << error.what() << '\n'; }
     catch (...) { std::cerr << "Unexpected desktop failure\n"; }
+    if (restart) {
+        // A fresh process reruns SDK validation; never delete/reset its state.
+        // 新进程重新执行 SDK 校验；不删除数据库或重置试用。
+        std::error_code error;
+        auto executable = std::filesystem::read_symlink("/proc/self/exe", error);
+        if (error) executable = argv[0];
+        const auto loader = executable.parent_path() / "hiface_startup";
+        execv(loader.c_str(), argv);
+        std::cerr << "Restart failed. " << supportEmail << '\n';
+    }
     return 1;
 }

@@ -8,12 +8,21 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <sys/statvfs.h>
 
 namespace hiface_linux_demo {
 namespace {
 constexpr int kPreviewFps = 25;
 constexpr int64_t kPreviewIntervalMs = 1000 / kPreviewFps;
 constexpr int64_t kAnalysisIntervalMs = 125; // Target 8 FPS; actual rate is reported separately. / 目标为 8 FPS，实际帧率另行报告。
+int storageError(const std::string& database, HiFaceStatus status) {
+    if (status != HIFACE_STATUS_DATABASE_ERROR && status != HIFACE_STATUS_RESOURCE_EXHAUSTED) return 0;
+    // Add a measured storage hint without replacing the SDK's original code.
+    // 根据实际剩余空间补充存储提示，不替换 SDK 原始错误码。
+    const auto parent = std::filesystem::path(database).parent_path();
+    struct statvfs space{};
+    return statvfs(parent.empty() ? "." : parent.c_str(), &space) == 0 && space.f_bavail == 0 ? ENOSPC : 0;
+}
 int environmentInteger(const char* name, int fallback, int low, int high) {
     const char* value = std::getenv(name);
     if (!value || !*value) return fallback;
@@ -101,12 +110,12 @@ std::shared_ptr<const ViewState> DesktopApp::snapshot() {
             view->camera_boxes.reset(); view->boxes.clear();
             if (view->mode == 'S' && !view->failed && !view->busy && view->overlay_frame_ms > 0) {
                 view->analysis_fps = 0;
-                view->status = "Waiting for fresh camera analysis...";
+                view->status = "Updating...";
             }
         }
         if (view->camera_stalled) {
             view->fps = view->analysis_fps = 0;
-            if (!view->failed) view->status = "No fresh camera frames. Use Reconnect to retry the current camera.";
+            if (!view->failed) view->status = view->mode == 'S' ? "Camera stalled. Reconnect." : "No fresh camera frames. Use Reconnect to retry the current camera.";
         }
         if (!capture_state_.error.empty()) {
             view->failed = true;
@@ -378,7 +387,24 @@ void DesktopApp::captureLoop() {
     preview_camera.close();
 }
 void DesktopApp::run(const std::string& models, const std::string& database, std::string device, bool smoke, const std::string& assets) {
+    RuntimeInfo runtime;
+    const auto read_version = [&] {
+        // Read only sdkVersion from the loaded SDK's public profile API. A
+        // failed query stays "unavailable"; the declared version is not actual.
+        // 仅从已加载 SDK 的公开接口提取 sdkVersion；查询失败保持未知，不把声明版本当实际版本。
+        char profile[4096]{}; size_t size = 0;
+        if (hiface_linux_license_profile_v1(profile, sizeof(profile), &size) != HIFACE_STATUS_OK) return;
+        const std::string value(profile, size), key = "\"sdkVersion\":\"";
+        const auto begin = value.find(key);
+        if (begin == value.npos) return;
+        const auto end = value.find('"', begin + key.size());
+        if (end == value.npos) return;
+        const auto version = value.substr(begin + key.size(), end - begin - key.size());
+        if (!version.empty() && version.size() <= 48 && version.find_first_not_of("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.+-") == version.npos)
+            runtime.actual_sdk = version;
+    };
     auto publish = [&](std::shared_ptr<ViewState> state) {
+        state->runtime = runtime;
         std::lock_guard<std::mutex> lock(mutex_);
         state->visual_revision = ++visual_revision_;
         if (state->ready && state->photo_search_generation != photo_generation_) {
@@ -388,6 +414,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         state_ = std::move(state);
     };
     try {
+        read_version();
         const auto data = std::filesystem::path(database).has_parent_path() ? std::filesystem::path(database).parent_path() : std::filesystem::path(".");
         const auto fixture = std::filesystem::path(assets) / "features_10000.json";
         const std::string demo_features = std::filesystem::exists(fixture) ? fixture.string() : "";
@@ -399,6 +426,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         const std::string fixed_camera = fixed_env ? fixed_env : "";
         require(fixed_camera.empty() || fixed_camera == device, "The configured board camera differs from the startup device");
         bool failed = false;
+        int system_error = 0;
         uint64_t settings_attempt = 0, photo_generation = 0;
         uint64_t enrollment_attempt = 0;
         uint64_t metadata_attempt = 0, gallery_attempt = 0, gallery_revision = 0;
@@ -467,7 +495,7 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 working->busy = true; working->failed = false; working->status = command.type == "image-search" ? "Detecting and searching every face..." : command.type == "image" ? "Processing photo" : command.type == "import" ? "Reading import source" : "Applying request";
                 publish(working);
                 try {
-                    failed = false;
+                    failed = false; system_error = 0;
                     const auto& v = command.values;
                     if (workflow.importing()) require(command.type == "cancel-import" || command.type == "gallery",
                         "Stop the import before another operation");
@@ -562,11 +590,13 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                     else if (command.type == "cancel-import") { workflow.cancelImport(); const auto status = workflow.status; gallery(); workflow.status = status; }
                 } catch (const DemoError& error) {
                     failed = true; workflow.status = error.message;
+                    system_error = error.sdk_status_known ? storageError(database, error.status) : 0;
                     if (command.type == "action" && !command.values.empty()) workflow.showFlowError(command.values[0][0], error);
                     if (command.type == "page" && !command.values.empty() && cameraPage(command.values[0]))
                         workflow.showFlowError(demoPage(command.values[0])->camera_mode, error);
                     std::fprintf(stderr, "[Demo] %s\n", error.message.c_str());
                 }
+                catch (const std::filesystem::filesystem_error& error) { failed = true; system_error = error.code().value(); workflow.status = error.what(); }
                 catch (const std::exception& error) { failed = true; workflow.status = error.what(); }
                 catch (...) { failed = true; workflow.status = "Unexpected command failure"; }
             }
@@ -639,14 +669,13 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
                 state->duplicate_enrollment_id = workflow.duplicate_enrollment_id;
                 state->flow_result_pending = workflow.resultPending(); state->flow_result_generation = workflow.flow_result_generation; state->result_title = workflow.result_title;
                 state->flow_result_can_retry = workflow.result_can_retry;
-                state->action_seconds_remaining = workflow.actionSecondsRemaining();
                 state->comparison_first_processing = comparison_completed[0] != comparison_generations_[0];
                 state->comparison_second_processing = comparison_completed[1] != comparison_generations_[1];
                 state->comparison_first_ready = workflow.comparison_first_ready && !state->comparison_first_processing;
                 state->comparison_second_ready = workflow.comparison_second_ready && !state->comparison_second_processing;
                 state->comparison_first_error = workflow.comparison_first_error; state->comparison_second_error = workflow.comparison_second_error;
                 state->comparison_similarity = state->comparison_first_processing || state->comparison_second_processing ? std::nullopt : workflow.comparison_similarity;
-                state->failed = failed; state->settings_attempt = settings_attempt;
+                state->failed = failed; state->system_error = failed ? system_error : 0; state->settings_attempt = settings_attempt;
                 state->photo_search_generation = photo_generation;
                 state->search_photo = workflow.search_photo; state->photo_search = workflow.photo_search; state->search_photo_path = workflow.search_photo_path;
                 state->import_saved = workflow.import_saved; state->import_failed = workflow.import_failed; state->import_processed = workflow.import_processed; state->import_total = workflow.import_total;
@@ -694,14 +723,20 @@ void DesktopApp::run(const std::string& models, const std::string& database, std
         configureCapture(device, workflow.settings(), false);
         workflow.cancelImport(); workflow.stop();
     } catch (const DemoError& error) {
+        if (runtime.actual_sdk.empty()) read_version();
         auto state = std::make_shared<ViewState>();
-        state->failed = true; state->initialization_status = error.status;
+        state->failed = true; state->initialization_status = error.sdk_status_known ? error.status : HIFACE_STATUS_OK;
+        state->system_error = error.sdk_status_known ? storageError(database, error.status) : 0;
         state->status = "SDK initialization failed: " + error.message;
         const auto now = std::time(nullptr); std::tm utc{}; char formatted[32]{};
         if (gmtime_r(&now, &utc) && std::strftime(formatted, sizeof(formatted), "%Y-%m-%d %H:%M:%S UTC", &utc))
             state->device_time_utc = formatted;
         std::fprintf(stderr, "[Startup] %s | device_time=%s\n", state->status.c_str(), state->device_time_utc.c_str());
         publish(state);
+    }
+    catch (const std::filesystem::filesystem_error& error) {
+        auto state = std::make_shared<ViewState>(); state->failed = true; state->status = error.what();
+        state->system_error = error.code().value(); publish(state);
     }
     catch (const std::exception& error) { auto state = std::make_shared<ViewState>(); state->failed = true; state->status = error.what(); publish(state); }
     catch (...) { auto state = std::make_shared<ViewState>(); state->failed = true; state->status = "Unexpected worker failure"; publish(state); }

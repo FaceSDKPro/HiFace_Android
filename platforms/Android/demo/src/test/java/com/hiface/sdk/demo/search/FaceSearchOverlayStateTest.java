@@ -18,9 +18,12 @@ public final class FaceSearchOverlayStateTest {
         assertTrue(state.resultText().contains("Face ID: " + id));
         assertTrue(state.resultText().contains("0.000"));
         assertEquals(Float.valueOf(0f), state.livenessScore());
+        assertEquals(id + ", Simi=0.98, Liveness=0.00", state.bestMatchCaption(true));
+        assertEquals(id + ", Simi=0.98", state.bestMatchCaption(false));
         show(state, frame(2), 200);
         assertEquals("", state.resultText());
         assertNull(state.livenessScore());
+        assertEquals("", state.bestMatchCaption(true));
         FaceSearchFrame low = frame(3, face(20, .4f, null));
         show(state, low, 300);
         state.complete(new FaceSearchResult(FaceSearchResult.EndReason.TIMEOUT, null, low), 400);
@@ -32,6 +35,19 @@ public final class FaceSearchOverlayStateTest {
         state.accept(spoof, 2000);
         state.complete(new FaceSearchResult(FaceSearchResult.EndReason.SPOOF_DETECTED, .2f, spoof), 2100);
         assertFalse(state.resultText().contains(id));
+        assertEquals("", state.bestMatchCaption(true));
+    }
+    @Test public void captionSelectsHighestConfirmedMatchAndUsesRequestedFormat() {
+        FaceSearchOverlayState state = newState();
+        FaceSearchFrame value = frame(1, face(20, .84f, "lower"),
+                face(240, .95f, "best-person"), face(430, .99f, null));
+        state.accept(value, 0);
+        assertEquals("", state.bestMatchCaption(true));
+        state.complete(new FaceSearchResult(FaceSearchResult.EndReason.MATCH_FOUND, .98f, value), 100);
+        assertEquals("best-person, Simi=0.95, Liveness=0.98", state.bestMatchCaption(true));
+        assertEquals("best-person, Simi=0.95", state.bestMatchCaption(false));
+        state.expire(1000);
+        assertEquals("", state.bestMatchCaption(true));
     }
     @Test public void earlyExpiryCheckDoesNotClearAFrameWhoseDeadlineWasExtended() {
         FaceSearchOverlayState state = newState();

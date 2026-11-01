@@ -11,6 +11,7 @@ struct Control {
     bool enabled = true;
     size_t text_start = 0;
     std::string label;
+    Font font = Font::Body;
     std::string id() const { return field.empty() ? action : "field:" + field; }
 };
 enum class Key { Text, Escape, Enter, Backspace, Delete, Left, Right, Up, Down, Home, End, PreviousPage, NextPage, Tab, SelectAll, Page1, Page2, Page3, Page4, Page5 };
@@ -37,16 +38,18 @@ public:
     void rejectSettings(const std::string& message) { settings_pending_ = false; reportError(message); }
     const std::vector<Control>& controls() const { return controls_; }
 private:
-    void text(int x, int y, std::string value, uint32_t color, int max_width, Font font = Font::Body);
+    void text(int x, int y, std::string value, uint32_t color, int max_width, Font font = Font::Body, bool centered = false);
     int wrap(int x, int y, const std::string& value, uint32_t color, int width, int max_lines = 2, Font font = Font::Body);
     void card(Rect rect);
     void button(Rect rect, const std::string& label, const std::string& action, int style = 0, bool enabled = true, Font font = Font::Body);
-    void field(Rect rect, const std::string& key, const std::string& label, const std::string& initial = "", bool enabled = true);
-    void toggle(int x, int y, int width, const std::string& key, const std::string& label, bool enabled = true);
-    void picture(Rect rect, const Image* image, const CameraFrame* camera, bool mirror, const std::vector<Box>& boxes);
+    void field(Rect rect, const std::string& key, const std::string& label, const std::string& initial = "", bool enabled = true, Font font = Font::Body);
+    void toggle(int x, int y, int width, const std::string& key, const std::string& label, bool enabled = true, Font font = Font::Body);
+    void picture(Rect rect, const Image* image, const CameraFrame* camera, bool mirror, const std::vector<Box>& boxes, bool fill = false);
     void empty(Rect rect, const std::string& title, const std::string& hint);
     void home(const ViewState& state, Rect body);
     void startupFailure(const ViewState& state);
+    void supportFooter(const ViewState& state);
+    ErrorPresentation errorPresentation(const ViewState& state) const;
     void camera(const ViewState& state, Rect body);
     void searchResults(const ViewState& state, Rect panel);
     void photos(const ViewState& state, Rect body);
@@ -54,6 +57,7 @@ private:
     void library(const ViewState& state, Rect body);
     void references(const ViewState& state, Rect body);
     void settings(const ViewState& state, Rect body);
+    void searchSettings(const ViewState& state, Rect body);
     void modal(const ViewState& state);
     void browser();
     void handle(const std::string& action, const ViewState& state);
@@ -98,7 +102,10 @@ private:
     uint64_t saved_capture_generation_ = 0, flow_result_generation_ = 0;
     int reference_offset_ = 0;
     bool result_dialog_ = false, replacement_declined_ = false;
-    bool sdk_advanced_ = false, search_advanced_ = false;
+    bool sdk_advanced_ = false;
+    int search_settings_scroll_ = 0, search_settings_max_scroll_ = 0;
+    Rect search_settings_area_;
+    std::string search_reveal_field_;
     bool library_menu_ = false;
     bool soft_keyboard_enabled_ = false, soft_keyboard_open_ = false;
     bool soft_keyboard_upper_ = false, soft_keyboard_symbols_ = false;
@@ -111,6 +118,7 @@ private:
     int pointer_x_ = -1, pointer_y_ = -1;
     size_t cursor_ = 0;
     bool running_ = true, initialized_ = false, select_all_ = false, content_enabled_ = true;
+    bool error_details_ = false, startup_home_ = false;
     bool confirming_ = false, browsing_ = false, enrolling_ = false;
     bool settings_pending_ = false, camera_menu_ = false;
     uint64_t settings_attempt_ = 0;

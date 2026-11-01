@@ -45,7 +45,6 @@ public:
     void previewComparisonPhoto(bool first, const std::string& path, const std::function<bool()>& cancelled = {});
     bool resultPending() const { return result_pending_; }
     void showFlowError(char mode, const DemoError& error);
-    int actionSecondsRemaining() const;
     void clearPageResults();
     void imageOperation(const std::string& operation, const std::string& first, const std::string& second,
         const std::string& id, const std::string& group, const std::string& tag);
@@ -107,9 +106,6 @@ private:
     uint64_t enrollment_generation_ = 0;
     char pending_capture_kind_ = 0;
     bool result_pending_ = false;
-    int action_step_ = 0;
-    int64_t action_deadline_ = 0;
-    bool action_prompt_ = false;
     Feature comparison_first_feature_{}, comparison_second_feature_{};
     bool importing_ = false, importing_images_ = false;
     std::string import_group_;

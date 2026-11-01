@@ -1,6 +1,9 @@
 #include "demo_service.h"
 #include "enrollment_draft.h"
+#include <algorithm>
+#include <cmath>
 #include <iomanip>
+#include <locale>
 #include <sstream>
 namespace hiface_demo {
 namespace {
@@ -46,6 +49,24 @@ std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1&
     else if (face.has_similarity) text << u8"未匹配 · 请录入人脸或更换清晰正脸";
     else text << u8"等待有效人脸 / 搜索结果";
     if (face.has_similarity) text << std::fixed << std::setprecision(3) << u8" · 相似度 " << face.similarity;
+    return text.str();
+}
+std::string bestSearchMatchCaption(const Update& update, bool include_liveness) {
+    if (update.paused) return {};
+    const HiFaceSearchCameraFaceV1* best = nullptr;
+    for (const auto& face : update.faces) {
+        if (!searchFaceAccepted(update, face) || !std::isfinite(face.similarity)) continue;
+        if (!best || face.similarity > best->similarity) best = &face;
+    }
+    if (!best) return {};
+    // Keep the selected identity and both scores on one fixed result row.
+    // 选中身份及两项分数固定在结果第二行，不能混用不同人脸的分数。
+    std::ostringstream text;
+    text.imbue(std::locale::classic());
+    text << std::string(best->face_id, std::find(std::begin(best->face_id), std::end(best->face_id), '\0'))
+         << ", Simi=" << std::fixed << std::setprecision(2) << best->similarity;
+    if (include_liveness && update.has_liveness && std::isfinite(update.liveness_score))
+        text << ", Liveness=" << update.liveness_score;
     return text.str();
 }
 std::string searchStatusText(const Update& update) {

@@ -164,16 +164,6 @@ std::string jsonQuote(const std::string& value) {
     return output + '"';
 }
 
-void atomicWrite(const std::string& path, const std::string& contents) {
-    const auto temporary = path + ".tmp-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
-    try {
-        std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-        output.write(contents.data(), contents.size()); output.close();
-        require(bool(output), "Cannot write file: " + path);
-        std::filesystem::rename(temporary, path);
-    } catch (...) { std::error_code ignored; std::filesystem::remove(temporary, ignored); throw; }
-}
-
 std::vector<GalleryEntry> readResults(HiFaceSearchResultsHandle results) {
     std::vector<GalleryEntry> entries;
     for (uint32_t i = 0; i < hiface_search_results_count_v1(results); ++i) {

@@ -1,5 +1,6 @@
 #pragma once
 #include "sdk_helpers.h"
+#include "file_io.h"
 #include <functional>
 #include <memory>
 
@@ -18,6 +19,5 @@ void saveEntries(Database& db, const std::vector<GalleryEntry>& entries, size_t 
 void saveEntry(Database& db, const GalleryEntry& entry, bool overwrite = false);
 std::vector<GalleryEntry> readFeatureFile(const std::string& path);
 void exportFeatureFile(Database& db, const std::string& path, const std::string& group = {}, const std::string& tag = {});
-void atomicWrite(const std::string& path, const std::string& contents);
 std::string jsonQuote(const std::string& value);
 }

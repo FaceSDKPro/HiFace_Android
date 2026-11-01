@@ -458,8 +458,6 @@ void update(Ui& ui) {
         const auto& options = state->settings.search;
         std::wostringstream mode, detail;
         mode << (options.multi_face ? L"M:N · 不检测活体" : options.liveness ? L"1:N · 活体已开启" : L"1:N · 活体未开启");
-        if (!state->error && state->update.has_liveness && std::isfinite(state->update.liveness_score))
-            mode << L" · " << std::fixed << std::setprecision(3) << state->update.liveness_score;
         if (state->error || state->fatal) detail << widen(state->update.message);
         else if (!ui.parameter_notice.empty()) detail << ui.parameter_notice;
         else if (ui.dirty) detail << L"参数有未应用修改，请先应用参数。";
@@ -467,9 +465,9 @@ void update(Ui& ui) {
             detail << (state->paused ? L"已暂停；恢复后重新识别。" : !state->search_population
                 ? L"当前范围没有人员；请录入或检查分组/标签。" : L"打开摄像头开始搜索。");
         else if (state->update.faces.empty()) detail << widen(state->update.message);
-        else for (size_t i=0;i<state->update.faces.size();++i) {
-            if (i) detail << L" · ";
-            detail << widen(searchFaceText(state->update,state->update.faces[i]));
+        else {
+            const auto best = bestSearchMatchCaption(state->update, !options.multi_face && options.liveness);
+            detail << widen(best.empty() ? searchStatusText(state->update) : best);
         }
         const auto full=mode.str()+L"\r\n"+detail.str();
         if(full!=ui.last_search_results){

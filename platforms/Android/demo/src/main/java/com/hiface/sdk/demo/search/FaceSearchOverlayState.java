@@ -107,6 +107,25 @@ final class FaceSearchOverlayState {
         return text.toString();
     }
 
+    // Select one confirmed sample so ID, similarity and liveness always belong together.
+    // 只选同一份已确认采样，避免最佳身份、相似度和活体分数来自不同的人脸。
+    String bestMatchCaption(boolean includeLiveness) {
+        Score best = null;
+        for (Score value : scores) {
+            if (value == null || !value.finalResult || value.livenessRejected
+                    || !value.face.isThresholdPassed() || value.face.getFaceId() == null
+                    || value.face.getSimilarity() == null || Float.isNaN(value.face.getSimilarity())
+                    || Float.isInfinite(value.face.getSimilarity())) continue;
+            if (best == null || value.face.getSimilarity() > best.face.getSimilarity()) best = value;
+        }
+        if (best == null) return "";
+        String text = best.face.getFaceId() + String.format(Locale.ROOT, ", Simi=%.2f", best.face.getSimilarity());
+        if (includeLiveness && best.livenessScore != null && !Float.isNaN(best.livenessScore)
+                && !Float.isInfinite(best.livenessScore))
+            text += String.format(Locale.ROOT, ", Liveness=%.2f", best.livenessScore);
+        return text;
+    }
+
     Float livenessScore() {
         for (Score value : scores)
             if (value != null && value.finalResult && value.livenessScore != null)

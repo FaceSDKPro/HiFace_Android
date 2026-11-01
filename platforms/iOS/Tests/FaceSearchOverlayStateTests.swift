@@ -57,8 +57,11 @@ struct FaceSearchOverlayStateTests {
         precondition(card.confirmedResults.first?.title == "Face ID: " + longID)
         precondition(card.confirmedResults.first?.details.contains("0.000") == true)
         precondition(card.confirmedLivenessScore == 0)
+        precondition(card.bestMatchCaption(includeLiveness: true) == longID + ", Simi=0.98, Liveness=0.00")
+        precondition(card.bestMatchCaption(includeLiveness: false) == longID + ", Simi=0.98")
         card.accept(frame(2, []), now: 0.2)
         precondition(card.confirmedResults.isEmpty && card.confirmedLivenessScore == nil)
+        precondition(card.bestMatchCaption(includeLiveness: true) == nil)
         card.accept(frame(3, [low]), now: 0.3)
         card.complete(FaceSearchResult(endReason: .timeout, livenessScore: nil,
                                        frame: frame(3, [low])), now: 0.4)
@@ -71,6 +74,21 @@ struct FaceSearchOverlayStateTests {
                                        frame: frame(4, [longFace])), now: 2.1)
         precondition(card.confirmedResults.first?.title == DemoL10n.text("活体未通过"))
         precondition(card.confirmedResults.first?.title.contains(longID) == false)
+        precondition(card.bestMatchCaption(includeLiveness: true) == nil)
+
+        var bestCard = FaceSearchOverlayState()
+        let bestFrame = frame(1, [matched,
+            FaceSearchFace(bounds: FaceBounds(x: 240, y: 30, width: 100, height: 100),
+                           thresholdPassed: true, similarity: 0.95, faceID: "best-person"),
+            FaceSearchFace(bounds: FaceBounds(x: 430, y: 30, width: 100, height: 100),
+                           thresholdPassed: false, similarity: 0.99, faceID: nil)])
+        bestCard.accept(bestFrame, now: 0)
+        precondition(bestCard.bestMatchCaption(includeLiveness: true) == nil)
+        bestCard.complete(FaceSearchResult(endReason: .matchFound, livenessScore: 0.98, frame: bestFrame), now: 0.1)
+        precondition(bestCard.bestMatchCaption(includeLiveness: true) == "best-person, Simi=0.95, Liveness=0.98")
+        precondition(bestCard.bestMatchCaption(includeLiveness: false) == "best-person, Simi=0.95")
+        bestCard.expire(now: 1)
+        precondition(bestCard.bestMatchCaption(includeLiveness: true) == nil)
 
         var idle = FaceSearchOverlayState()
         for id in UInt64(1)...10_000 {

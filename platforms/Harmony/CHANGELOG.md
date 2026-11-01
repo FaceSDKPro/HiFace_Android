@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.5]
+
+- 本地候选准备中；构建、验收及发布批准待完成。
+
 ## [0.8.3]
 
 - Unified trial and commercial authorization in the shared Core/SQLite runtime.db; old state is not migrated.

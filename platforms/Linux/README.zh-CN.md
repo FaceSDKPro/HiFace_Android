@@ -10,6 +10,9 @@ Linux x86_64、ARM64，CPU 推理，公共 C ABI v1。提供桌面摄像头程�
 ## HelloFace 中直接运行
 
 从 HelloFace 仓库进入 `platforms/Linux`，执行 `./self-test.sh`、`./run-demo.sh`。启动脚本根据 `uname -m` 自动选择 `runtimes/x86_64` 或 `runtimes/arm64`。
+图形界面请用 `./run-demo.sh` 启动，SDK 加载失败时也能显示可操作的错误页。
+首页和错误页显示 Demo、实际 SDK 版本及联系方式；无法读取 SDK 版本时明确标注预期版本。
+复制诊断只含版本、错误码、时间与联系方式，不包含应用数据。
 SDK 二进制、公共头文件和模型在 `runtimes/{arch}/sdk`；`src` 是集成 Demo 源码。SDK 接入见对应 SDK 的 `README.zh-CN.md`。
 编译 Demo 时 CMake 同样自动选择宿主架构，也可传 `-DHIFACE_SDK_DIR`。开发和 CLI 命令中的 `bin`、`sdk` 路径应加 `runtimes/{arch}/` 前缀。
 
@@ -110,7 +113,7 @@ HIFACE_MOUSE_CURSOR=software ./run-demo.sh /dev/video0
 参考保存与选择保留原始 HF1，不重新量化。搜索的相机/单图录入先采集并预览，填写 ID/group/tag 后确认保存；重复 ID 需再次确认 Replace，也可保留草稿修改。重拍、取消或离页不会入库，也不会替换验证参考。Face Capture 保存已有 ID 时更新该参考，行为与 Android 一致。库中批量导入有覆盖确认。
 抓拍、活体、验证和搜索共用一个相机流程槽。切页取消当前相机流程；暂停搜索释放范围缓存，恢复时重新预热。
 
-活体每次默认随机选择三个不同动作，验证每次默认随机选择两个不同动作，重试重新选择。两页使用独立配置；可在 Settings 关闭随机选择，用按钮添加 blink / nod / shake / mouth，最多四步，允许重复。Undo / Clear 删除步骤，动作留空运行静默活体。动作提示保持到步骤变化，并显示剩余秒数；完成或失败均提供重试与关闭。
+活体每次默认随机选择三个不同动作，验证每次默认随机选择两个不同动作，重试重新选择。两页使用独立配置；可在 Settings 关闭随机选择，用按钮添加 blink / nod / shake / mouth，最多四步，允许重复。Undo / Clear 删除步骤，动作留空运行静默活体。动作提示保持到步骤变化，居中显示在圆框上方，不显示剩余秒数；完成或失败均提供重试与关闭。
 Verify 默认启用静默活体，可在验证页的 Settings 关闭；Liveness 始终经过 Core 活体流程。
 1:N 搜索默认开启同帧静默活体；M:N 自动关闭活体。搜索命中但活体拒绝时显示拒绝，不显示通过绿框。
 所有结论、动作判定和阈值算法来自公共 Core。

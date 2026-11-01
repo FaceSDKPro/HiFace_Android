@@ -8,6 +8,7 @@ struct Update : hiface::FrameUpdate {
 };
 bool searchFaceAccepted(const Update& update, const HiFaceSearchCameraFaceV1& face);
 std::string searchFaceText(const Update& update, const HiFaceSearchCameraFaceV1& face);
+std::string bestSearchMatchCaption(const Update& update, bool include_liveness);
 std::string searchStatusText(const Update& update);
 // Worker-thread workflow for SDK requests, enrollment identity, and persistence.
 // 工作线程中的应用流程：SDK 请求、录入身份与持久化。

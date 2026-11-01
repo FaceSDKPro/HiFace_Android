@@ -36,7 +36,7 @@ struct DesktopWindow::Impl {
     SharedMemorySegmentInfo shared_image{};
     bool shared_image_attached = false, shared_memory_disabled = false;
     RenderPicture source_picture = 0, destination_picture = 0;
-    std::array<XFontSet, 4> fonts{}; XIM input_method = nullptr; XIC input_context = nullptr;
+    std::array<XFontSet, 5> fonts{}; XIM input_method = nullptr; XIC input_context = nullptr;
     Atom delete_window = 0, clipboard = 0, utf8 = 0, paste_property = 0, targets = 0, atom_type = 0, string_type = 0;
     int depth = 0, width = 1060, height = 740, physical_width = 1060, physical_height = 740;
     int min_width = 600, min_height = 540, buffer_width = 0, buffer_height = 0;
@@ -128,7 +128,7 @@ struct DesktopWindow::Impl {
         // not Helvetica. Name its installed aliases first so kiosk typography
         // retains the requested pixel sizes instead of silently using `fixed`.
         // 目标 Buildroot 镜像自带 X11 misc 位图字体而非 Helvetica；优先指定已安装别名，以保留要求的像素字号，避免静默回退 fixed。
-        const char* patterns[] = {"7x14,fixed", "6x12,fixed", "10x20,9x18B,fixed", "9x18B,10x20,fixed"};
+        const char* patterns[] = {"7x14,fixed", "6x12,fixed", "10x20,9x18B,fixed", "9x18B,10x20,fixed", "9x15bold,9x15,7x14,fixed"};
         for (size_t i = 0; i < fonts.size(); ++i) { char** missing = nullptr; int count = 0; char* fallback = nullptr; fonts[i] = XCreateFontSet_fn(display, patterns[i], &missing, &count, &fallback); if (missing) XFreeStringList_fn(missing); }
         input_method = XOpenIM_fn(display, nullptr, nullptr, nullptr);
         if (input_method) input_context = XCreateIC_fn(input_method, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, window, XNFocusWindow, window, static_cast<char*>(nullptr));

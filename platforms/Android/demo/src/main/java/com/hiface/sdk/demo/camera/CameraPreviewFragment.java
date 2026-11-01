@@ -157,7 +157,7 @@ public final class CameraPreviewFragment extends Fragment {
     /** Set preview/capture and SDK analysis ceilings independently. / 分别设置预览采集与 SDK 分析上限。 */
     @MainThread
     public void configureSessionFrameRates(int previewFramesPerSecond, int analysisFramesPerSecond) {
-        if (analysisFramesPerSecond <= 0|| analysisFramesPerSecond > previewFramesPerSecond) {
+        if (analysisFramesPerSecond <= 0 || analysisFramesPerSecond > previewFramesPerSecond) {
             throw new IllegalArgumentException("Frame rates must be positive; analysis cannot exceed preview");
         }
         targetAnalysisFrameRate = analysisFramesPerSecond;

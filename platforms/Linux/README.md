@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-**SDK 0.8.0 Beta** · Linux x86_64 / ARM64 · CPU inference.
+**SDK Beta** · Linux x86_64 / ARM64 · CPU inference.
 Ubuntu 22.04 / glibc 2.35 baseline; Ubuntu 24.04 compatibility target. X11 or Wayland with XWayland is needed for the desktop.
 **The SDK is in iterative public Beta testing. Please keep the SDK version up to date. The current model does not support face recognition for people under 12 and must not be used in financial scenarios.**
 Target-device desktop, fonts, USB camera and recognition acceptance remains pending; cross-builds are not device acceptance.
@@ -31,6 +31,9 @@ HIFACE_START_SEARCH=1 ./run-demo.sh /dev/video2
 ```
 
 Launchers choose `runtimes/x86_64` or `runtimes/arm64` using `uname -m`. Keep the complete directory tree.
+Use `./run-demo.sh` for the GUI so an SDK loading failure still opens an operable error page.
+Home and error pages show Demo/actual SDK versions and support contacts. If the SDK version cannot be read,
+the expected version is labeled explicitly. Copy diagnostics includes versions, error code and time, without application data.
 `src/` is the integration Demo; `runtimes/{arch}/sdk/` holds only the closed-source SDK, public declarations,
 protected model resources. Demo integration examples are outside the SDK. Read its [English SDK guide](runtimes/x86_64/sdk/README.md) or
 [Chinese SDK guide](runtimes/x86_64/sdk/README.zh-CN.md) (same APIs for ARM64).
@@ -103,7 +106,7 @@ X cancel, M mirror, N reconnect, Q quit. Text inputs support UTF-8, Tab/Shift+Ta
 Back returns to the previous page, cancelling an active photo search or confirming that an import should stop first. Esc closes a dialog/input/menu before returning. F1..F5 switch primary features; dialogs retain focus. Settings preserve drafts and ask before discarding changes. Camera Menu contains only device and current-feature options.
 Detection, liveness, verification and face search expose only their own feature settings. Face Capture requires preview confirmation and a Face ID, saves only its HF1 reference in a separate captured-ID store, and returns Home. Verification first selects a captured ID before opening its camera; an empty store asks the user to capture first. Choose Face ID changes that reference. Original HF1 text is retained without requantization. Returning from Face library to Image Search restores the existing photo and results.
 Search enrollment stages a preview and ID/group/tag. An existing ID requires a separate Replace confirmation; keeping it preserves the draft. Capture updates an existing reference ID like Android. Batch replacement and deletion require confirmation.
-Liveness defaults to three distinct random actions and verification to two; retries choose a fresh sequence. Each has independent settings. Custom sequences allow up to four actions, including repeats; empty actions mean silent liveness. Verification enables silent liveness by default. Action instructions remain visible until the step changes, with a countdown. Results and failures offer Retry and Close.
+Liveness defaults to three distinct random actions and verification to two; retries choose a fresh sequence. Each has independent settings. Custom sequences allow up to four actions, including repeats; empty actions mean silent liveness. Verification enables silent liveness by default. Action instructions stay centered above the circle until the step changes; remaining seconds are not displayed. Results and failures offer Retry and Close.
 1:N search can use silent liveness; M:N omits it. Spoof rejection takes priority over a matching ID/score.
 
 The full-screen search page captures and previews the newest frame at 25 FPS. Recognition consumes only the newest

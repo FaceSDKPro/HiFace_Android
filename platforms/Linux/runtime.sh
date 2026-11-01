@@ -12,8 +12,13 @@ resolve_hiface_runtime() {
         *) echo "Unsupported architecture: $(uname -m)" >&2; return 1 ;;
     esac
     hiface_runtime=$demo_dir
-    if [ ! -d "$hiface_runtime/sdk" ]; then
+    if [ ! -x "$hiface_runtime/bin/hiface_desktop" ] && [ ! -x "$hiface_runtime/bin/hiface_demo" ]; then
         hiface_runtime=$demo_dir/runtimes/$hiface_arch
+    fi
+    if [ "${1:-}" = gui ]; then
+        if [ -x "$hiface_runtime/bin/hiface_startup" ] && [ -x "$hiface_runtime/bin/hiface_desktop" ]; then return 0; fi
+        echo "Incomplete Demo package. FaceAISDK.Service@gmail.com" >&2
+        return 1
     fi
     if [ ! -x "$hiface_runtime/bin/hiface_demo" ] || [ ! -f "$hiface_runtime/sdk/lib/libhiface.so.1" ]; then
         echo "Missing $hiface_arch runtime. Keep the complete Demo and SDK directories together." >&2

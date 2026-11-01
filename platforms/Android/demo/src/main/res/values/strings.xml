@@ -133,6 +133,7 @@
     <string name="search_ui_waiting_hint">Face the camera. Recognition starts automatically.</string>
     <string name="search_ui_searching_hint">Searching the face library</string>
     <string name="search_ui_empty_title">No faces in this scope</string>
+    <string name="search_ui_empty_caption">Scope empty: enroll or import</string>
     <string name="search_ui_empty_hint">Enroll a face or adjust the search settings</string>
     <string name="search_ui_interval_title">Waiting for the next search</string>
     <string name="search_ui_interval_hint">Continues automatically after the interval</string>

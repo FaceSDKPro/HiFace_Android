@@ -3,9 +3,9 @@ set -eu
 umask 077
 demo_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 . "$demo_dir/runtime.sh"
-resolve_hiface_runtime
+resolve_hiface_runtime gui
 if [ "${1:-}" = --help ]; then
-    exec "$hiface_runtime/bin/hiface_desktop" --help
+    exec "$hiface_runtime/bin/hiface_startup" --help
 fi
 if [ "$#" -gt 1 ]; then
     echo "用法：./run-demo.sh [/dev/video0]" >&2
@@ -17,6 +17,5 @@ if [ -z "${DISPLAY:-}" ]; then
     exit 1
 fi
 data_dir=${HIFACE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/hiface-demo}
-mkdir -p "$data_dir"
 export HIFACE_DEMO_ASSETS_DIR="$demo_dir/assets"
-exec "$hiface_runtime/bin/hiface_desktop" --builtin "$data_dir/hiface-search.db" "${1:-/dev/video0}"
+exec "$hiface_runtime/bin/hiface_startup" --builtin "$data_dir/hiface-search.db" "${1:-/dev/video0}"

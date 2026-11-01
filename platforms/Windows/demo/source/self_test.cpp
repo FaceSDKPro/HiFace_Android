@@ -27,13 +27,26 @@ void runSelfTest() {
         std::copy_n("person-001", 11, face.face_id);
         update.faces = {face};
         require(!searchFaceAccepted(update, face), "A candidate must not be presented as a confirmed identity");
+        require(bestSearchMatchCaption(update, true).empty(), "Pending samples must not enter the result caption");
         update.matched = true; update.end_reason = HIFACE_SEARCH_END_MATCH_FOUND;
         require(searchFaceAccepted(update, face) && searchFaceText(update, face).find("person-001") != std::string::npos,
             "A completed match must identify the accepted person");
         update.faces.push_back(face); update.faces.back().threshold_passed = 0;
         require(!searchFaceAccepted(update, update.faces.back()) && searchStatusText(update).find("1 / 2") != std::string::npos,
             "M:N must report per-face acceptance, not mark every detected face matched");
+        auto best = face;
+        std::fill(std::begin(best.face_id), std::end(best.face_id), '\0');
+        std::copy_n("best-person", 11, best.face_id); best.similarity = .95f;
+        update.faces.push_back(best); update.has_liveness = true; update.liveness_score = .98f;
+        require(bestSearchMatchCaption(update, true) == "best-person, Simi=0.95, Liveness=0.98",
+            "Caption must select the highest confirmed match and keep both scores together");
+        require(bestSearchMatchCaption(update, false) == "best-person, Simi=0.95",
+            "Disabled liveness must not appear in the result caption");
+        update.liveness_score = 0;
+        require(bestSearchMatchCaption(update, true) == "best-person, Simi=0.95, Liveness=0.00",
+            "A real zero liveness score must not disappear");
         update.end_reason = HIFACE_SEARCH_END_SPOOF_DETECTED;
+        require(bestSearchMatchCaption(update, true).empty(), "Spoof rejection must not display a matched caption");
         require(!searchFaceAccepted(update, face) && searchFaceText(update, face).find(u8"不确认身份") != std::string::npos,
             "Liveness rejection must suppress identity confirmation despite a high similarity");
         update = {}; update.searching = true; update.search_progress = HIFACE_SEARCH_STAGE_EMPTY_GALLERY;

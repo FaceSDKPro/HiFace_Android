@@ -114,7 +114,6 @@ FaceWorkflow::FaceWorkflow(const std::string& models, const std::string& databas
     : database_(database.c_str()), data_directory_(std::filesystem::path(database).has_parent_path()
         ? std::filesystem::path(database).parent_path() : std::filesystem::path(".")) {
     loadModels(session_, models);
-    const bool migrate_reference = !std::filesystem::exists(data_directory_ / "captured-faces.db");
     captured_database_ = std::make_unique<Database>((data_directory_ / "captured-faces.db").c_str());
     loadCapturedFaces();
     recount();
@@ -128,11 +127,8 @@ FaceWorkflow::FaceWorkflow(const std::string& models, const std::string& databas
             require(space == HIFACE_FEATURE_SPACE_ID && !id.empty() && id.size() <= HIFACE_SEARCH_MAX_TEXT_BYTES, "Reference feature space or ID mismatch");
             check(hiface_feature_decode_text_v1(text.c_str(), text.size(), reference_.data(), reference_.size()), "read saved reference");
             std::getline(input, source); reference_from_captured_ = source == "captured";
-            if (migrate_reference) {
-                saveEntry(*captured_database_, {id, text, "", ""}, false); loadCapturedFaces();
-                atomicWrite(file.string(), space + '\n' + id + '\n' + text + "\ncaptured\n");
-                reference_from_captured_ = true;
-            }
+            // Restoring a selection must not enroll it into another database.
+            // 恢复基准选择不应隐式录入另一张人脸库；录入仅由明确的保存操作执行。
             reference_id = id; has_reference_ = true;
         } catch (const DemoError& error) { status = "Reference ignored: " + error.message; }
     }
@@ -149,10 +145,6 @@ void FaceWorkflow::stop() {
     if (enrollment_.pending()) aligned_preview.reset();
     enrollment_.clear();
     pending_capture_kind_ = 0; duplicate_enrollment_id.clear(); result_pending_ = false;
-    action_step_ = 0; action_deadline_ = 0; action_prompt_ = false;
-}
-int FaceWorkflow::actionSecondsRemaining() const {
-    return action_prompt_ && action_deadline_ && !result_pending_ ? std::max<int64_t>(0, (action_deadline_ - monotonicMilliseconds() + 999) / 1000) : 0;
 }
 void FaceWorkflow::clearPageResults() {
     stop(); image_first.reset(); image_second.reset(); aligned_preview.reset(); image_matches.clear(); clearPhotoSearch(); inference_ms = 0;
@@ -192,7 +184,7 @@ void FaceWorkflow::pauseSearch() {
     require(mode_ == 'S' || mode_ == 'P', "Start search before pausing");
     if (mode_ == 'P') { action('S'); return; }
     stop(); check(hiface_search_release_memory_v1(database_.handle), "release search cache");
-    mode_ = 'P'; status = "Search paused. Click Pause/resume to continue.";
+    mode_ = 'P'; status = "Search paused";
 }
 void FaceWorkflow::applySettings(const DemoSettings& settings) {
     const auto validated = parseSettings(settingsFields(settings));
@@ -275,7 +267,7 @@ void FaceWorkflow::action(char key) {
         config.threshold = settings_.search_threshold; config.timeout_ms = settings_.search_timeout; config.interval_ms = settings_.search_interval;
         config.group = settings_.group.c_str(); config.tag = settings_.tag.c_str();
         check(hiface_session_search_start_v1(session_.handle, &config), "start camera search");
-        mode_ = 'S'; status = "Search running";
+        mode_ = 'S'; status = "Searching...";
     }
 }
 void FaceWorkflow::finishFlow() {
@@ -385,15 +377,15 @@ bool FaceWorkflow::process(const CameraFrame& input) {
         boxes = searchBoxes(result);
         switch (result.end_reason) {
             case HIFACE_SEARCH_END_MATCH_FOUND: status = "Match found"; break;
-            case HIFACE_SEARCH_END_TIMEOUT: status = "No match: round timed out"; break;
+            case HIFACE_SEARCH_END_TIMEOUT: status = "No match (timeout)"; break;
             case HIFACE_SEARCH_END_NO_FACE: status = "No face"; break;
-            case HIFACE_SEARCH_END_SPOOF_DETECTED: status = "Rejected: spoof detected (identity match does not grant access)"; break;
+            case HIFACE_SEARCH_END_SPOOF_DETECTED: status = "Liveness rejected"; break;
             default:
-                if (result.progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) status = "Selected gallery is empty. Enroll or change group/tag.";
-                else if (result.progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) status = "Move closer: search requires a 100px face";
+                if (result.progress == HIFACE_SEARCH_STAGE_EMPTY_GALLERY) status = "No faces in scope";
+                else if (result.progress == HIFACE_SEARCH_STAGE_FACE_TOO_SMALL) status = "Move closer";
                 else if (result.progress == HIFACE_SEARCH_STAGE_SEARCHING) status = "Searching...";
-                else if (result.progress == HIFACE_SEARCH_STAGE_SUCCESS_INTERVAL) status = "Waiting for the next search round";
-                else status = "Waiting for a face";
+                else if (result.progress == HIFACE_SEARCH_STAGE_SUCCESS_INTERVAL) status = "Waiting...";
+                else status = "No face";
         }
         if (result.has_liveness_score) status += " | liveness " + score(result.liveness_score);
     } else {
@@ -410,10 +402,8 @@ bool FaceWorkflow::process(const CameraFrame& input) {
         if (mode_ != 'D' && event.kind != HIFACE_FLOW_EVENT_NONE) {
             status = stage(event.stage);
             if (event.has_action && event.stage == HIFACE_STAGE_PERFORM_ACTION) {
-                action_prompt_ = true;
-                if (event.step_number != action_step_) { action_step_ = event.step_number; action_deadline_ = begin + HIFACE_FLOW_DEFAULT_ACTION_TIMEOUT_MS; }
                 status = "Please " + std::string(actionInstruction(event.action)) + " (" + std::to_string(event.step_number) + "/" + std::to_string(event.step_count) + ")";
-            } else action_prompt_ = false;
+            }
             if (event.kind == HIFACE_FLOW_EVENT_ERROR) { stop(); check(event.flow_status, "face flow"); }
             else if (event.kind == HIFACE_FLOW_EVENT_RESULT_AVAILABLE) finishFlow();
         }

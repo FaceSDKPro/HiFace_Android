@@ -16,9 +16,9 @@ if (PACKAGE_FIND_VERSION_RANGE)
     "with this request. Only the lower endpoint of the range will be used.")
 endif()
 
-set(PACKAGE_VERSION "0.8.3")
+set(PACKAGE_VERSION "0.8.5")
 
-if("0.8.3" MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)") # strip the tweak version
+if("0.8.5" MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)") # strip the tweak version
   set(CVF_VERSION_MAJOR "${CMAKE_MATCH_1}")
   set(CVF_VERSION_MINOR "${CMAKE_MATCH_2}")
   set(CVF_VERSION_PATCH "${CMAKE_MATCH_3}")
@@ -35,7 +35,7 @@ if("0.8.3" MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)") # strip the tweak version
 
   set(CVF_VERSION_NO_TWEAK "${CVF_VERSION_MAJOR}.${CVF_VERSION_MINOR}.${CVF_VERSION_PATCH}")
 else()
-  set(CVF_VERSION_NO_TWEAK "0.8.3")
+  set(CVF_VERSION_NO_TWEAK "0.8.5")
 endif()
 
 if(PACKAGE_FIND_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)") # strip the tweak version

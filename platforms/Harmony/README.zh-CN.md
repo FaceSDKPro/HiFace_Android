@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-SDK：**0.8.3 Beta**
+SDK：**0.8.5 Beta**
 
 支持检测、采集、活体、1:1 比对、1:N/M:N 搜索和人脸库管理，算法在设备端运行。
 
@@ -19,7 +19,7 @@ SDK：**0.8.3 Beta**
 | 目录 | 用途 |
 |---|---|
 | `demo/` | 可修改的 ArkTS 示例 |
-| `libs/hiface-0.8.3.har` | SDK 二进制 |
+| `libs/hiface-0.8.5.har` | SDK 二进制 |
 | `AppScope/`、`hvigor/` | 应用信息和构建配置，需保留 |
 
 模型已内置于 HAR，使用前等待 `whenReady()`。

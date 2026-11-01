@@ -1,5 +1,6 @@
 #pragma once
 #include "workflow.h"
+#include "error_ui.h"
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -19,6 +20,8 @@ struct ViewState {
     bool camera_stalled = false, search_idle = false;
     std::string fixed_camera_device;
     HiFaceStatus initialization_status = HIFACE_STATUS_OK;
+    int system_error = 0;
+    RuntimeInfo runtime;
     std::string device_time_utc;
     uint64_t settings_attempt = 0, photo_search_generation = 0, preview_sequence = 0, visual_revision = 0;
     bool photo_search_busy = false, pending_enrollment = false;
@@ -38,12 +41,11 @@ struct ViewState {
     bool comparison_first_processing = false, comparison_second_processing = false;
     std::string comparison_first_error, comparison_second_error;
     std::optional<float> comparison_similarity;
-    int action_seconds_remaining = 0;
     std::shared_ptr<Image> search_photo;
     std::shared_ptr<const ImageSearchReport> photo_search;
     std::string search_photo_path;
     uint32_t import_saved = 0, import_failed = 0, import_processed = 0, import_total = 0;
-    std::string status = "Loading five SDK models...", camera, device = "/dev/video0", reference, data_directory, demo_features, lighting;
+    std::string status = "Starting SDK...", camera, device = "/dev/video0", reference, data_directory, demo_features, lighting;
     char mode = 'D';
     uint64_t count = 0, filtered_count = 0;
     uint32_t gallery_offset = 0;
